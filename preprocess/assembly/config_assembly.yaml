@@ -1,0 +1,5 @@
+assemblers: ["megahit"] # 选择使用 “megahit” 还是 “spades”
+# 指定组装阶段项目目录 specify directories
+output_directory:  /data/home/chenliang/project/PRJCA022804/assembly  # 需要自己修改
+# 来自preprocessing中得到的组装所需的样本清单
+sample_table: /data/home/chenliang/project/PRJCA022804/preprocessing/assembly_input.txt

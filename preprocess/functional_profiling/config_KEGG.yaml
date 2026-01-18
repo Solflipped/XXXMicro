@@ -1,0 +1,9 @@
+# 指定组装阶段项目目录 specify directories
+output_directory:  /data/home/chenliang/project/PRJCA022804/functional_profiling  # 需要自己修改
+# 来自preprocessing、assembly到的样本清单
+sample_reads: /data/home/chenliang/project/PRJCA022804/preprocessing/classification_input.txt
+sample_contigs: /data/home/chenliang/project/PRJCA022804/assembly/contigs_list.txt
+
+# eggnog数据库
+EggNOGdb: /data/home/chenliang/DataBase/emapperdb-5.0.2/
+KEGGdb: /data/home/chenliang/DataBase/KEGGdb/

@@ -1,0 +1,7 @@
+# 为分类工作流配置文件 configfile for workflow
+output_directory: /data/home/chenliang/project/PRJCA022804/taxon_classification/ # 需要自己修改
+database_directory: /data/home/chenliang/DataBase/kraken2/PlusPF20250714/    # 需要自己修改
+readlength: 150
+
+# 来自preprocessing中得到的分类所需的样本清单
+sample_file: /data/home/chenliang/project/PRJCA022804/preprocessing/classification_input.txt

@@ -1,0 +1,12 @@
+# 指定原始读段预处理项目目录 specify directories
+raw_reads_directory: /data/home/chenliang/DataSet/CRA014435/   # 需要自己修改
+output_directory: /data/home/chenliang/project/PRJCA022804/preprocessing/ # 需要自己修改
+database_directory: /data/home/chenliang/DataBase/    # 需要自己修改
+read_specification:  ['f1', 'r2'] #['1', '2'] or ['R1', 'R2'] 指定是正向or反向读段 
+extension: .fastq.gz # 扩展名
+
+
+# 为TrimGalore指定参数 specify parameters for TrimGalore
+trim_galore:
+  quality:  30
+  min_read_length: 50

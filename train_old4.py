@@ -1,0 +1,726 @@
+import torch
+import os
+from collections import OrderedDict as _OD
+from copy import deepcopy
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+from torch.optim import AdamW
+from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, roc_curve, f1_score
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.model_selection import StratifiedKFold
+from dataset import load_uni_features, load_multi_features
+from model.FT_transformer import FTTransformer
+from model.MBT import MBT
+from model.GAFT import GDFT
+from model.MDL4Microbiome import MDL4Microbiome
+from model.MSFT import MTMFTransformer, FT_Vote
+import numpy as np
+import pandas as pd
+from skorch import NeuralNetClassifier
+from skorch.dataset import Dataset
+from skorch.helper import predefined_split, SliceDict
+from skorch.callbacks import Callback, EpochScoring, EarlyStopping
+from utils import check_record, evaluate, setup_seed
+
+
+
+def save_best_model(net, output_dir: str):
+    """保存当前最佳验证得分的模型与优化器参数"""
+    os.makedirs(output_dir, exist_ok=True)
+    net.save_params(
+        f_params=os.path.join(output_dir, 'model_best.pkl'),
+        f_optimizer=os.path.join(output_dir, 'optim_best.pkl'),
+        f_history=os.path.join(output_dir, 'history_best.json'),
+    )
+
+
+class SaveModel(Callback):
+    """当监控指标出现 *_best 时，保存当前最佳模型。默认监控 valid_auc_best"""
+    def __init__(self, out_dir: str, monitor: str = 'valid_auc_best'):
+        self.out_dir = out_dir
+        self.monitor = monitor
+        os.makedirs(self.out_dir, exist_ok=True)
+
+    def on_epoch_end(self, net, **kwargs):
+        try:
+            if net.history[-1, self.monitor]:
+                save_best_model(net, self.out_dir)
+        except KeyError:
+            # 若没有该监控键，静默跳过
+            pass
+
+
+def _slice_sdict(sdict: SliceDict, idx):
+    """根据索引切片 SliceDict（包含 f1_input / f2_input）。"""
+    keys = list(sdict.keys())
+    data = {k: sdict[k][idx] for k in keys}
+    return SliceDict(**data)
+
+
+def train_gdft_fold(
+    processor: GDFT,
+    X_tr_fold: SliceDict,
+    X_val_fold: SliceDict,
+    y_tr_fold: np.ndarray,
+    y_val_fold: np.ndarray,
+    modality_order,
+    config: dict,
+):
+    """对单折数据训练 GDFT (MBT+GCN)，返回验证集指标与训练好的 GCN。"""
+    # 解析模态顺序，保证 species / ko 对应正确
+    if modality_order[0].strip().lower() == 'species':
+        species_tr, ko_tr = X_tr_fold['f1_input'], X_tr_fold['f2_input']
+        species_val, ko_val = X_val_fold['f1_input'], X_val_fold['f2_input']
+    else:
+        species_tr, ko_tr = X_tr_fold['f2_input'], X_tr_fold['f1_input']
+        species_val, ko_val = X_val_fold['f2_input'], X_val_fold['f1_input']
+
+    train_data = {'species': species_tr, 'ko': ko_tr}
+    val_data = {'species': species_val, 'ko': ko_val}
+
+    sample_ids_train = [f"tr_{i}" for i in range(species_tr.shape[0])]
+    sample_ids_val = [f"val_{i}" for i in range(species_val.shape[0])]
+
+    adj, feats, gcn_model = processor.fit_transform(
+        train_data=train_data,
+        val_data=val_data,
+        y_train=y_tr_fold.squeeze(),
+        y_val=y_val_fold.squeeze(),
+        sample_ids_train=sample_ids_train,
+        sample_ids_val=sample_ids_val,
+        config=config,
+    )
+
+    device = processor.device
+    labels_full = np.concatenate([y_tr_fold.squeeze(), y_val_fold.squeeze()])
+    labels_t = torch.tensor(labels_full, dtype=torch.float32, device=device)
+
+    idx_train = torch.arange(species_tr.shape[0], device=device)
+    idx_val = torch.arange(species_tr.shape[0], species_tr.shape[0] + species_val.shape[0], device=device)
+
+    # 计算正负样本权重
+    y_tr_labels = y_tr_fold.squeeze().astype(int)
+    pos_ct = int((y_tr_labels == 1).sum())
+    neg_ct = int((y_tr_labels == 0).sum())
+    pos_weight_value = 1.0 if pos_ct == 0 else neg_ct / max(pos_ct, 1)
+    pos_weight_tensor = torch.tensor([pos_weight_value], device=device, dtype=torch.float32)
+
+    criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor)
+    optimizer = torch.optim.Adam(gcn_model.parameters(), lr=config.get('gcn_lr', 1e-3), weight_decay=1e-4)
+
+    patience = config.get('gcn_patience', 20)
+    max_epochs = config.get('gcn_max_epochs', 300)
+    wait = 0
+    best_auc = -np.inf
+    best_state = None
+
+    for epoch in range(max_epochs):
+        gcn_model.train()
+        optimizer.zero_grad()
+        logits = gcn_model(feats, adj)
+        loss = criterion(logits[idx_train], labels_t[idx_train])
+        loss.backward()
+        optimizer.step()
+
+        # 验证
+        gcn_model.eval()
+        with torch.no_grad():
+            logits_full = gcn_model(feats, adj)
+            prob_val = torch.sigmoid(logits_full[idx_val]).detach().cpu().numpy().ravel()
+            try:
+                auc_val = roc_auc_score(labels_full[idx_val.cpu()], prob_val)
+            except ValueError:
+                auc_val = float('nan')
+
+        improved = auc_val > best_auc
+        if improved:
+            best_auc = auc_val
+            best_state = deepcopy(gcn_model.state_dict())
+            wait = 0
+        else:
+            wait += 1
+
+        if (epoch + 1) % 20 == 0 or improved:
+            print(f"      [GCN] Epoch {epoch+1:03d} | train loss {loss.item():.4f} | val AUC {auc_val:.4f}")
+
+        if wait >= patience:
+            print(f"      [GCN] Early stopping at epoch {epoch+1}, best val AUC={best_auc:.4f}")
+            break
+
+    if best_state is not None:
+        gcn_model.load_state_dict(best_state)
+
+    # 最终验证指标
+    gcn_model.eval()
+    with torch.no_grad():
+        logits_full = gcn_model(feats, adj)
+        prob_val = torch.sigmoid(logits_full[idx_val]).detach().cpu().numpy().ravel()
+        val_preds = (prob_val >= 0.5).astype(int)
+        val_labels = labels_full[idx_val.cpu()].astype(int)
+        try:
+            val_auc = roc_auc_score(val_labels, prob_val)
+        except ValueError:
+            val_auc = float('nan')
+        val_recall = recall_score(val_labels, val_preds, zero_division=0)
+        val_precision = precision_score(val_labels, val_preds, zero_division=0)
+        val_f1 = f1_score(val_labels, val_preds, zero_division=0)
+
+    return {
+        'AUC': val_auc,
+        'Recall': val_recall,
+        'Precision': val_precision,
+        'F1': val_f1,
+    }
+
+
+def train(disease, feature, model_type, **params):
+    """
+    训练流程：
+    1) 先用固定随机种子 777 做 8:2 的训练/测试划分（分层抽样，保证类比一致）
+    2) 对训练集做 5 折交叉验证：每折显式给定验证集（predefined_split），暂时不使用早停；
+       用 NeuralNetClassifier 训练，并用 EpochScoring('roc_auc', use_probas=True) 监控 AUC，保存每折最佳模型；
+    3) 训练完成后，统计各折验证集 AUC，并在测试集上对每折模型做预测，输出平均融合后的测试 AUC。
+    """
+
+    # 固定种子与设备
+    seed = 777
+    setup_seed(seed)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # =====================
+    # 超参 & 记录列准备
+    # =====================
+    lr = float(params.get('learning_rate', params.get('lr', 1e-4)))
+    batch_size = int(params.get('batch_size', 8))
+    noise = 0   # 暂时不使用高斯噪声
+
+    # FT-Transformer/MBT/MSFTTransformer/FT_Vote 相关超参
+    n_blocks = int(params.get('n_blocks', 5))
+    fusion_layer = params.get('fusion_layer', 3)
+    n_bottlenecks = int(params.get('num_bottleneck', 4))
+    num_heads = 8  # 多头注意力
+
+    # GDFT 相关超参
+    gcn_lr = float(params.get('learning_rate', params.get('lr', 1e-4)))
+    k_neighbors = int(params.get('k_neighbors', 5))
+    gcn_patience = 20
+    gcn_max_epochs = 300
+    gcn_hidden_dim = 64
+    gcn_dropout = 0.5
+
+    # MSFTTransformer 相关超参
+    use_bottleneck = True  # 使用瓶颈
+    btn_init = 'embed'     # bottleneck初始化方式
+    use_cross_atn = True   # 使用交叉注意力
+
+    # MDL4Microbiome 相关超参（两阶段训练 epoch）
+    # epoch1 = int(params.get('epoch1', 30))  # individual 模型部分训练轮数
+    # epoch2 = int(params.get('epoch2', 10))  # shared 模型部分训练轮数
+
+    # 特征选择相关参数
+    # fs_method = params.get('fs_method', 'none')  # 特征选择方法: 'none' / 'RandomForest+RFECV'
+    # fs_n_estimators = 200
+    # fs_rfecv_splits = 5
+    # fs_rfecv_repeats = 1
+
+
+    # 结果目录与记录文件
+    results_dir = os.path.join('./results', disease)
+    os.makedirs(results_dir, exist_ok=True)
+    log_path = os.path.join(results_dir, f'{model_type}.csv')
+
+    # 构造 record
+    if model_type == 'MBT':
+        record = {
+            'lr': lr,
+            'batch_size': batch_size,
+            'feature': feature,
+            'n_blocks': n_blocks,
+            'fusion_layer': fusion_layer,
+            'num_bottleneck': n_bottlenecks,
+            'seed': seed,
+        }
+        metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
+        ordered_cols = ['fold','lr','batch_size','feature','n_blocks','fusion_layer','num_bottleneck','seed'] + metric_cols
+    elif model_type == 'FT_transformer':
+        record = {
+            'lr': lr,
+            'batch_size': batch_size,
+            'feature': feature,
+            'n_blocks': n_blocks,
+            'seed': seed,
+        }
+        metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
+        ordered_cols = ['fold','lr','batch_size','feature','n_blocks','seed'] + metric_cols
+    elif model_type == 'MDL4Microbiome':
+        record = {
+            'lr': lr,
+            'batch_size': batch_size,
+            'feature': feature,
+            'seed': seed,
+        }
+        metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
+        ordered_cols = ['fold','lr','batch_size','feature','seed'] + metric_cols
+    elif model_type == 'MSFTTransformer':
+        record = {
+            'lr': lr,
+            'batch_size': batch_size,
+            'feature': feature,
+            'n_blocks': n_blocks,  # 作为层数
+            'num_bottleneck': n_bottlenecks,
+            'use_bottleneck': use_bottleneck,
+            'btn_init': btn_init,
+            'use_cross_atn': use_cross_atn,
+            'seed': seed,
+        }
+        metric_cols = ['AUC','Recall','Precision','F1']
+        ordered_cols = ['fold','lr','batch_size','feature','n_blocks','num_bottleneck','use_bottleneck','btn_init','use_cross_atn','seed'] + metric_cols
+    elif model_type == 'FT_Vote':
+        record = {
+            'lr': lr,
+            'batch_size': batch_size,
+            'feature': feature,
+            'n_blocks': n_blocks,
+            'seed': seed,
+        }
+        metric_cols = ['AUC','Recall','Precision','F1']
+        ordered_cols = ['fold','lr','batch_size','feature','n_blocks','seed'] + metric_cols
+    elif model_type == 'GDFT':
+        record = {
+            'lr': lr,
+            'feature': feature,
+            'n_blocks': n_blocks,
+            'fusion_layer': fusion_layer,
+            'num_bottleneck': n_bottlenecks,
+            'gcn_lr': gcn_lr,
+            'k_neighbors': k_neighbors,
+            'seed': seed,
+        }
+        metric_cols = ['AUC','Recall','Precision','F1']
+        ordered_cols = ['fold','lr','feature','n_blocks','fusion_layer','num_bottleneck','gcn_lr','k_neighbors','seed'] + metric_cols
+    else:
+        raise ValueError(f"Unsupported model_type for logging schema: {model_type}")
+
+    # 全局去重：如果已存在任意一行具有相同超参（不含 fold、指标），则直接跳过整个训练
+    if not check_record(record, log_path):
+        print('paras has trained. 该超参数组合已训练过')
+        return None
+
+    # 1) 训练/测试划分（使用已有的加载函数，函数内部已标准化与分层切分）
+    is_multimodal = (',' in feature)
+    if model_type  == "FT_transformer"  and is_multimodal:
+        raise ValueError("FT_transformer 仅支持单模态（'ko' 或 'species'）")
+
+    if model_type == "FT_transformer":
+        x_train, x_test, y_train, y_test = load_uni_features(seed=seed, disease=disease, feature=feature)
+        Xtr = x_train['f1_input']
+        Xte = x_test['f1_input']
+        print(f"[Data] FT single-modality shapes -> X_train: {Xtr.shape}, X_test: {Xte.shape}")
+    elif model_type == 'MBT':
+        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
+        Xtr = x_train
+        Xte = x_test
+        print(f"[Data] MBT multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
+    elif model_type == 'MDL4Microbiome':
+        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
+        Xtr = x_train
+        Xte = x_test
+        print(f"[Data] MDL4 multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
+    elif model_type == 'MSFTTransformer':
+        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
+        Xtr = x_train
+        Xte = x_test
+        print(f"[Data] MSFTTransformer multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
+    elif model_type == 'FT_Vote':
+        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
+        Xtr = x_train
+        Xte = x_test
+        print(f"[Data] FT_Vote multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
+    elif model_type == 'GDFT':
+        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
+        Xtr = x_train
+        Xte = x_test
+        print(f"[Data] GDFT multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
+    else:
+        raise ValueError(f"Unsupported model_type: {model_type}")
+
+    # y 形状调整
+    y_tr_float = y_train.astype(np.float32)  # (N,1)
+    y_tr_cls = y_tr_float.squeeze().astype(int)  # (N,)
+    y_te = np.array(y_test).astype(int)
+
+    # =====================
+    # 5 折交叉验证（在训练集上）
+    # =====================
+
+    # StratifiedKFold: 按标签分层的 K 折切分（保证每折类别比例大致一致）
+    # n_splits=5: 5 折；shuffle=True: 打乱；random_state=42: 固定随机性   宇宙的答案
+    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    fold_test_aucs = []
+    fold_test_recalls = []
+    fold_test_precisions = []
+    fold_test_f1s = []
+
+    # 解析模态顺序
+    modality_order = feature.split(',') if ',' in feature else [feature]
+
+    # 将任意形状的 predict_proba 输出转换为正类概率向量 (N,)
+    # def _to_pos_proba(y_prob: np.ndarray) -> np.ndarray:
+    #     if y_prob.ndim == 1:
+    #         return y_prob
+    #     if y_prob.shape[1] == 1:
+    #         return y_prob[:, 0]
+    #     return y_prob[:, 1]
+
+    # kf.split(X, y) -> 生成器，每次返回 (train_idx, val_idx) 的索引数组
+    # 这里：
+    # - 如果是多输入（SliceDict），我们用 Xtr['f1_input'] 作为“代表”来做分层切分（只要样本数一致即可）
+    # - 如果是单输入（ndarray），直接用 Xtr
+    # enumerate(..., start=1): 让 fold_i 从 1 开始计数（便于展示与记录）
+    # isinstance(Xtr, SliceDict): 判断是否为多输入
+    for fold_i, (tr_idx, val_idx) in enumerate(
+        kf.split(Xtr['f1_input'] if isinstance(Xtr, SliceDict) else Xtr, y_tr_cls), start=1
+    ):
+        print(f"\n===== Fold {fold_i}/5 =====")
+
+        # 准备本折的数据
+        if isinstance(Xtr, SliceDict):
+            # 多输入：对 SliceDict 做索引切片，保留键 f1_input/f2_input，保证两路输入与索引对齐
+            X_tr_fold = _slice_sdict(Xtr, tr_idx)
+            X_val_fold = _slice_sdict(Xtr, val_idx)
+            print(
+                f"train f1/f2: {X_tr_fold['f1_input'].shape} / {X_tr_fold['f2_input'].shape}; "
+                f"val f1/f2: {X_val_fold['f1_input'].shape} / {X_val_fold['f2_input'].shape}"
+            )
+        else:
+            # 单输入：ndarray 直接用索引数组切片
+            X_tr_fold = Xtr[tr_idx]
+            X_val_fold = Xtr[val_idx]
+            print(f"train: {X_tr_fold.shape}; val: {X_val_fold.shape}")
+
+        y_tr_fold = y_tr_float[tr_idx]
+        y_val_fold = y_tr_float[val_idx]
+
+        if model_type == 'GDFT':
+            processor = GDFT(k_neighbors=k_neighbors, random_seed=seed)
+            gdft_config = {
+                'n_blocks': n_blocks,
+                'fusion_layer': fusion_layer,
+                'num_bottleneck': n_bottlenecks,
+                'lr': lr,
+                'gcn_lr': gcn_lr,
+                'gcn_patience': gcn_patience,
+                'gcn_max_epochs': gcn_max_epochs,
+                'gcn_hidden_dim': gcn_hidden_dim,
+                'gcn_dropout': gcn_dropout,
+                'batch_size': batch_size,
+            }
+
+            val_metrics = train_gdft_fold(
+                processor=processor,
+                X_tr_fold=X_tr_fold,
+                X_val_fold=X_val_fold,
+                y_tr_fold=y_tr_fold,
+                y_val_fold=y_val_fold,
+                modality_order=modality_order,
+                config=gdft_config,
+            )
+
+            print(
+                f"Fold {fold_i} Val -> AUC {val_metrics['AUC']:.4f}, "
+                f"Recall {val_metrics['Recall']:.4f}, "
+                f"Precision {val_metrics['Precision']:.4f}, "
+                f"F1 {val_metrics['F1']:.4f}"
+            )
+
+            if modality_order[0].strip().lower() == 'species':
+                species_te, ko_te = Xte['f1_input'], Xte['f2_input']
+            else:
+                species_te, ko_te = Xte['f2_input'], Xte['f1_input']
+            test_data = {'species': species_te, 'ko': ko_te}
+            sample_ids_test = [f"test_{i}" for i in range(species_te.shape[0])]
+
+            adj_test, feats_test = processor.transform(test_data, sample_ids_test)
+            processor.gcn_model.eval()
+            with torch.no_grad():
+                logits_te = processor.gcn_model(feats_test, adj_test)
+                prob_te = torch.sigmoid(logits_te).detach().cpu().numpy().ravel()
+
+            test_preds = (prob_te >= 0.5).astype(int)
+            test_labels = y_te.astype(int)
+            try:
+                auc_test = roc_auc_score(test_labels, prob_te)
+            except ValueError:
+                auc_test = float('nan')
+            recall_test = recall_score(test_labels, test_preds, zero_division=0)
+            precision_test = precision_score(test_labels, test_preds, zero_division=0)
+            f1_test = f1_score(test_labels, test_preds, zero_division=0)
+
+            fold_test_aucs.append(auc_test)
+            fold_test_recalls.append(recall_test)
+            fold_test_precisions.append(precision_test)
+            fold_test_f1s.append(f1_test)
+
+            print(
+                f"Fold {fold_i} Test -> AUC {auc_test:.4f}, "
+                f"Recall {recall_test:.4f}, Precision {precision_test:.4f}, F1 {f1_test:.4f}"
+            )
+
+            try:
+                existing_df = pd.read_csv(log_path)
+            except Exception:
+                existing_df = pd.DataFrame(columns=ordered_cols)
+            existing_df = existing_df.reindex(columns=ordered_cols)
+
+            fold_record = dict(record)
+            fold_record.update({
+                'fold': fold_i,
+                'AUC': round(auc_test, 4),
+                'Recall': round(recall_test, 4),
+                'Precision': round(precision_test, 4),
+                'F1': round(f1_test, 4),
+            })
+
+            new_row_df = pd.DataFrame([{c: fold_record.get(c, None) for c in ordered_cols}])
+            updated_df = pd.concat([existing_df, new_row_df], ignore_index=True)
+            updated_df.to_csv(log_path, index=False)
+            print(f"[Logging] Saved fold {fold_i} result to {log_path}")
+            continue
+
+
+        # 按模型类型构建网络
+        if model_type == "FT_transformer":
+            n_num_features = X_tr_fold.shape[1]
+            model = FTTransformer.make_default(
+                n_num_features=n_num_features,
+                cat_cardinalities=None,
+                n_blocks=n_blocks,
+                d_out=1,
+            )
+            module_to_fit = model
+        elif model_type == 'MBT':
+            f1_dim = X_tr_fold['f1_input'].shape[1]
+            f2_dim = X_tr_fold['f2_input'].shape[1]
+            if modality_order[0].strip().lower() == 'species':
+                n_species_features, n_ko_features = f1_dim, f2_dim
+                first_species = True
+            else:
+                n_species_features, n_ko_features = f2_dim, f1_dim
+                first_species = False
+            base_mbt = MBT.make_default(
+                n_species_features=n_species_features,
+                n_ko_features=n_ko_features,
+                num_layers=n_blocks,
+                num_heads=8,
+                fusion_layer=fusion_layer,
+                n_bottlenecks=n_bottlenecks,
+                test_with_bottlenecks=True,
+            )
+            class MBTWrapper(nn.Module):
+                def __init__(self, mbt, first_species_flag: bool):
+                    super().__init__(); self.mbt = mbt; self.first_species_flag = first_species_flag
+                def forward(self, f1_input, f2_input):
+                    # 将 f1_input/f2_input 映射为底层模型期望的 dict {'species':..., 'ko':...}
+                    if self.first_species_flag:
+                        raw_x = {'species': f1_input, 'ko': f2_input}
+                    else:
+                        raw_x = {'species': f2_input, 'ko': f1_input}
+                    return self.mbt(raw_x)
+            module_to_fit = MBTWrapper(base_mbt, first_species)
+        elif model_type == 'MDL4Microbiome':
+            f1_dim = X_tr_fold['f1_input'].shape[1]
+            f2_dim = X_tr_fold['f2_input'].shape[1]
+            if modality_order[0].strip().lower() == 'species':
+                n_species_features, n_ko_features = f1_dim, f2_dim
+                first_species = True
+            else:
+                n_species_features, n_ko_features = f2_dim, f1_dim
+                first_species = False
+            base_mdl = MDL4Microbiome.make_default(
+                n_species_features=n_species_features,
+                n_ko_features=n_ko_features,
+            )
+            class MDL4Wrapper(nn.Module):
+                def __init__(self, mdl, first_species_flag: bool):
+                    super().__init__(); self.mdl = mdl; self.first_species_flag = first_species_flag
+                def forward(self, f1_input, f2_input):
+                    if self.first_species_flag:
+                        raw_x = {'species': f1_input, 'ko': f2_input}
+                    else:
+                        raw_x = {'species': f2_input, 'ko': f1_input}
+                    return self.mdl(raw_x)
+            module_to_fit = MDL4Wrapper(base_mdl, first_species)
+        elif model_type == 'MSFTTransformer':
+            f1_dim = X_tr_fold['f1_input'].shape[1]
+            f2_dim = X_tr_fold['f2_input'].shape[1]
+            if modality_order[0].strip().lower() == 'species':
+                first_species = True
+                species_dim, ko_dim = f1_dim, f2_dim
+            else:
+                first_species = False
+                species_dim, ko_dim = f2_dim, f1_dim
+            inputs_dim = _OD()
+            inputs_dim['species'] = (0, species_dim)
+            inputs_dim['ko'] = (1, ko_dim)
+            base_msft = MTMFTransformer(
+                n_layers=n_blocks,
+                num_bottleneck=n_bottlenecks,
+                use_bottleneck=use_bottleneck,
+                btn_init=btn_init,
+                use_cross_atn=use_cross_atn,
+                inputs_dim=inputs_dim,
+            )
+            class MSFTWrapper(nn.Module):
+                def __init__(self, msft_model, first_species_flag: bool):
+                    super().__init__(); self.msft = msft_model; self.first_species_flag = first_species_flag
+                def forward(self, f1_input, f2_input):
+                    # 直接以关键字形式传递两个模态，符合 MTMFTransformer.forward(self, **features)
+                    if self.first_species_flag:
+                        return self.msft(species=f1_input, ko=f2_input)
+                    else:
+                        return self.msft(species=f2_input, ko=f1_input)
+            module_to_fit = MSFTWrapper(base_msft, first_species)
+        elif model_type == 'FT_Vote':
+            f1_dim = X_tr_fold['f1_input'].shape[1]
+            f2_dim = X_tr_fold['f2_input'].shape[1]
+            if modality_order[0].strip().lower() == 'species':
+                first_species = True
+                species_dim, ko_dim = f1_dim, f2_dim
+            else:
+                first_species = False
+                species_dim, ko_dim = f2_dim, f1_dim
+            inputs_dim = _OD()
+            inputs_dim['species'] = (0, species_dim)
+            inputs_dim['ko'] = (1, ko_dim)
+            # 构造用于FT_Vote的配置: 每个模态单独的FTTransformer共享n_blocks等
+            ft_vote_config = {
+                'n_num_features': inputs_dim,
+                'n_blocks': n_blocks,
+                'cat_cardinalities': None,
+                'd_out': 1,
+            }
+            base_vote = FT_Vote(**ft_vote_config)
+            class VoteWrapper(nn.Module):
+                def __init__(self, vote_model, first_species_flag: bool):
+                    super().__init__(); self.vote = vote_model; self.first_species_flag = first_species_flag
+                def forward(self, f1_input, f2_input):
+                    if self.first_species_flag:
+                        return self.vote(species=f1_input, ko=f2_input)
+                    else:
+                        return self.vote(species=f2_input, ko=f1_input)
+            module_to_fit = VoteWrapper(base_vote, first_species)
+        else:
+            raise ValueError("Unsupported model_type during model build")
+
+        # 定义验证集（predefined_split）与回调（AUC 监控 + 保存最佳）
+        valid_ds = Dataset(X_val_fold, y_val_fold)
+
+        # 使用内置 roc_auc 评分器，自动选择正类概率/决策函数，避免自定义展平导致的长度不一致
+        auc_cb = EpochScoring('roc_auc', lower_is_better=False, on_train=False, name='valid_auc')
+        # 早停：若 valid_auc 在 patience 轮内没有提升则停止训练
+        early_stop_cb = EarlyStopping(
+            monitor='valid_auc', patience=20,
+            threshold=0, threshold_mode='rel', lower_is_better=False
+        )
+        ckpt_dir = os.path.join('./Checkpoints', disease, '777', f'{model_type}', f'fold_{fold_i}')
+        save_cb = SaveModel(ckpt_dir, monitor='valid_auc_best')
+
+        # 选择损失（BCEWithLogits）按折动态设置 pos_weight = neg/pos
+        y_tr_labels = y_tr_fold.squeeze().astype(int)
+        pos_ct = int((y_tr_labels == 1).sum())
+        neg_ct = int((y_tr_labels == 0).sum())
+        if pos_ct == 0 or neg_ct == 0:
+            # 极端情况：某折出现单一类别（理论上分层抽样不会发生），回退为 1.0
+            pos_weight_value = 1.0
+        else:
+            pos_weight_value = neg_ct / pos_ct
+        pos_weight_tensor = torch.tensor([pos_weight_value], device=device, dtype=torch.float32)
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor).to(device)
+        print(f"[Fold {fold_i}] pos_weight=neg/pos = {neg_ct}/{pos_ct} -> {pos_weight_value:.4f}")
+
+
+        net = NeuralNetClassifier(
+            module_to_fit,
+            max_epochs=200, # 每个fold训练epoch数
+            lr=lr,
+            iterator_train__shuffle=True,
+            device=device,
+            optimizer=torch.optim.AdamW,
+            optimizer__weight_decay=1e-3,
+            batch_size=batch_size,
+            train_split=predefined_split(valid_ds),
+            criterion=criterion,
+            # 回调顺序：先计算 valid_auc，再执行早停逻辑，最后保存最佳模型
+            callbacks=[auc_cb, early_stop_cb, save_cb],
+        )
+        
+        # 训练
+        net.fit(X_tr_fold, y_tr_fold)
+
+        # 加载并使用本折验证集上 AUC 最佳模型
+        net.load_params(
+            f_params=os.path.join(ckpt_dir, 'model_best.pkl'),
+            f_optimizer=os.path.join(ckpt_dir, 'optim_best.pkl'),
+            f_history=os.path.join(ckpt_dir, 'history_best.json'),
+        )
+
+        # 在测试集上做最终评估
+        test_metrics = evaluate(net, Xte, y_te)
+        fold_test_aucs.append(test_metrics['AUC'])
+        fold_test_recalls.append(test_metrics['Recall'])
+        fold_test_precisions.append(test_metrics['Precision'])
+        fold_test_f1s.append(test_metrics['F1'])
+        print(f"Test AUC = {test_metrics['AUC']:.4f}")
+
+        # 写入该折结果
+        try:
+            existing_df = pd.read_csv(log_path)
+        except Exception:
+            existing_df = pd.DataFrame(columns=ordered_cols)
+        existing_df = existing_df.reindex(columns=ordered_cols)
+
+        fold_record = dict(record)
+        fold_record.update({
+            'fold': fold_i,
+            'AUC': round(test_metrics['AUC'], 4),
+            'Recall': round(test_metrics['Recall'], 4),
+            'Precision': round(test_metrics['Precision'], 4),
+            'F1': round(test_metrics['F1'], 4),
+        })
+
+        new_row_df = pd.DataFrame([{c: fold_record.get(c, None) for c in ordered_cols}])
+        updated_df = pd.concat([existing_df, new_row_df], ignore_index=True)
+        updated_df.to_csv(log_path, index=False)
+        print(f"[Logging] Saved fold {fold_i} result to {log_path}")
+
+    # ====== 打印每个指标的均值与标准差（测试集） ======
+    print("\n===== Test Summary (per-fold models) =====")
+    print(f"AUC mean±std: {np.mean(fold_test_aucs):.4f} ± {np.std(fold_test_aucs):.4f}")
+    print(f"Recall mean±std: {np.mean(fold_test_recalls):.4f} ± {np.std(fold_test_recalls):.4f}")
+    print(f"Precision mean±std: {np.mean(fold_test_precisions):.4f} ± {np.std(fold_test_precisions):.4f}")
+    print(f"F1 mean±std: {np.mean(fold_test_f1s):.4f} ± {np.std(fold_test_f1s):.4f}")
+
+    # ====== 写入汇总，指标为 mean(std) ======
+    try:
+        existing_df = pd.read_csv(log_path)
+    except Exception:
+        existing_df = pd.DataFrame(columns=ordered_cols)
+    existing_df = existing_df.reindex(columns=ordered_cols)
+
+    def _fmt(mu, sd):
+        return f"{mu:.4f}({sd:.4f})"
+
+    summary_row = dict(record)
+    summary_row.update({
+        'fold': 'all',
+        'AUC': _fmt(np.mean(fold_test_aucs), np.std(fold_test_aucs)),
+        'Recall': _fmt(np.mean(fold_test_recalls), np.std(fold_test_recalls)),
+        'Precision': _fmt(np.mean(fold_test_precisions), np.std(fold_test_precisions)),
+        'F1': _fmt(np.mean(fold_test_f1s), np.std(fold_test_f1s)),
+    })
+
+    new_row_df = pd.DataFrame([{c: summary_row.get(c, None) for c in ordered_cols}])
+    updated_df = pd.concat([existing_df, new_row_df], ignore_index=True)
+    updated_df.to_csv(log_path, index=False)
+    print(f"[Logging] Saved summary to {log_path}")

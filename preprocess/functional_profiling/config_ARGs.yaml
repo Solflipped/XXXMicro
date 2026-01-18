@@ -1,0 +1,4 @@
+# 指定组装阶段项目目录 specify directories
+output_directory:  /data/home/chenliang/project/PRJCA022804/functional_profiling  # 需要自己修改
+# 来自preprocessing得到的干净读段
+input_directory:  /data/home/chenliang/project/PRJCA022804/preprocessing/04_sync/ # 需要自己修改

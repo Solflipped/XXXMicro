@@ -1,0 +1,7 @@
+fold,lr,batch_size,feature,n_blocks,fusion_layer,num_bottleneck,lmf_hidden_dim,lmf_output_dim,lmf_rank,lmf_dropout,use_lmf_subnet,gat_dim,gat_dropout,finetune_mbt,mbt_use_cross_atn,seed,AUC,Recall,Precision,F1
+1,0.0001,16,"ko,species",4,2,4,128,256,4,0.1,True,256,0.1,True,True,777,0.5769,0.6667,0.6667,0.6667
+2,0.0001,16,"ko,species",4,2,4,128,256,4,0.1,True,256,0.1,True,True,777,0.6186,1.0,0.6486,0.7869
+3,0.0001,16,"ko,species",4,2,4,128,256,4,0.1,True,256,0.1,True,True,777,0.5064,0.625,0.6818,0.6522
+4,0.0001,16,"ko,species",4,2,4,128,256,4,0.1,True,256,0.1,True,True,777,0.4952,0.7917,0.6552,0.717
+5,0.0001,16,"ko,species",4,2,4,128,256,4,0.1,True,256,0.1,True,True,777,0.516,0.7083,0.6538,0.68
+all,0.0001,16,"ko,species",4,2,4,128,256,4,0.1,True,256,0.1,True,True,777,0.5426(0.0474),0.7583(0.1328),0.6612(0.0119),0.7006(0.0482)

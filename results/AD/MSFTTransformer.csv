@@ -1,0 +1,7 @@
+fold,lr,batch_size,feature,n_blocks,num_bottleneck,use_bottleneck,btn_init,use_cross_atn,seed,AUC,Recall,Precision,F1
+1,0.0001,8,"ko,species",4,4,True,embed,True,777,0.5417,0.7917,0.6552,0.717
+2,0.0001,8,"ko,species",4,4,True,embed,True,777,0.4679,0.6667,0.64,0.6531
+3,0.0001,8,"ko,species",4,4,True,embed,True,777,0.6026,0.9167,0.6875,0.7857
+4,0.0001,8,"ko,species",4,4,True,embed,True,777,0.5385,0.7083,0.68,0.6939
+5,0.0001,8,"ko,species",4,4,True,embed,True,777,0.5256,0.4167,0.7143,0.5263
+all,0.0001,8,"ko,species",4,4,True,embed,True,777,0.5353(0.0429),0.7000(0.1654),0.6754(0.0259),0.6752(0.0860)
