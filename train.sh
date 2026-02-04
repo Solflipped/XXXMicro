@@ -1,6 +1,5 @@
 source /home/liang/miniconda3/etc/profile.d/conda.sh
 conda activate hj_env
-python test_pytorch.py
 
 
 # EW-T2D
@@ -17,10 +16,14 @@ python test_pytorch.py
 #   --n_blocks 4 \
 #   --learning_rate 1e-4 
 
-python main.py -d EW-T2D -f species -m FTMicro --gpu 0 \
+python main.py -d EW-T2D -f species,ko -m FTMicro --gpu 0 \
   --batch_size 8 \
-  --num_conv_layers 2 \
-  --d_token 128 \
-  --learning_rate 1e-4 
-
-
+  --d_token 96 \
+  --num_layers 4 \
+  --base_channels 96 \
+  --expansion_factor 2 \
+  --latent_dim 512 \
+  --fusion_depth 2 \
+  --dst_embedding_length 8 \
+  --ahl_depth 3 \
+  --learning_rate 1e-4

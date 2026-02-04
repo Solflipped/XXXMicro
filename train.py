@@ -9,9 +9,8 @@ from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.model_selection import StratifiedKFold
 from dataset import load_uni_features, load_multi_features
 from model.FT_transformer import FTTransformer
-from model.FTMicro import UFEN
+from model.FTMicro import FTMicro
 from model.MBT import MBT
-from model.GAFT import GAFT
 from model.MDL4Microbiome import MDL4Microbiome
 from model.MSFT import MTMFTransformer, FT_Vote
 import numpy as np
@@ -82,45 +81,29 @@ def train(disease, feature, model_type, **params):
     n_blocks = int(params.get('n_blocks', 5))
     fusion_layer = params.get('fusion_layer', 3)
     n_bottlenecks = int(params.get('num_bottleneck', 4))
-    num_heads = 8  # 多头注意力
     mbt_use_cross_atn = bool(params.get('mbt_use_cross_atn', False))
 
     # FTMicro 相关超参
-    num_conv_layers = int(params.get('num_conv_layers', 2))
-    d_token = int(params.get('d_token', 192))
-
-    # GAFT 相关超参
-    # lmf_hidden_dim = int(params.get('lmf_hidden_dim', 128))
-    # lmf_output_dim = int(params.get('lmf_output_dim', 128))
-    # lmf_rank = int(params.get('lmf_rank', 4))
-    # lmf_dropout = float(params.get('lmf_dropout', 0.1))
-    # use_lmf_subnet = bool(params.get('use_lmf_subnet', True))
-    # gat_dim = int(params.get('gat_dim', 128))
-    # gat_dropout = float(params.get('gat_dropout', 0.1))
-    # finetune_mbt = bool(params.get('finetune_mbt', False))
+    d_token = int(params.get('d_token', 96))
+    num_layers = int(params.get('num_layers', 4))
+    base_channels = int(params.get('base_channels', 32))
+    expansion_factor = int(params.get('expansion_factor', 2))
+    latent_dim = int(params.get('latent_dim', 512))
+    fusion_depth = int(params.get('fusion_depth', 2))
+    dst_embedding_length = int(params.get('dst_embedding_length', 8))
+    ahl_depth = int(params.get('ahl_depth', 3))
 
     # MSFTTransformer 相关超参
     use_bottleneck = True  # 使用瓶颈
     btn_init = 'embed'     # bottleneck初始化方式
     use_cross_atn = True   # 使用交叉注意力
 
-    # MDL4Microbiome 相关超参（两阶段训练 epoch）
-    # epoch1 = int(params.get('epoch1', 30))  # individual 模型部分训练轮数
-    # epoch2 = int(params.get('epoch2', 10))  # shared 模型部分训练轮数
-
-    # 特征选择相关参数
-    # fs_method = params.get('fs_method', 'none')  # 特征选择方法: 'none' / 'RandomForest+RFECV'
-    # fs_n_estimators = 200
-    # fs_rfecv_splits = 5
-    # fs_rfecv_repeats = 1
-
-
     # 结果目录与记录文件
     results_dir = os.path.join('./results', disease)
     os.makedirs(results_dir, exist_ok=True)
     log_path = os.path.join(results_dir, f'{model_type}.csv')
 
-    # 构造 record
+    # 构造记录 record
     if model_type == 'MBT':
         record = {
             'lr': lr,
@@ -134,40 +117,6 @@ def train(disease, feature, model_type, **params):
         }
         metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
         ordered_cols = ['fold','lr','batch_size','feature','n_blocks','fusion_layer','num_bottleneck','mbt_use_cross_atn','seed'] + metric_cols
-    elif model_type == 'GAFT':
-        record = {
-            'lr': lr,
-            'batch_size': batch_size,
-            'feature': feature,
-            'n_blocks': n_blocks,
-            'fusion_layer': fusion_layer,
-            'num_bottleneck': n_bottlenecks,
-            'mbt_use_cross_atn': mbt_use_cross_atn,
-            'seed': seed,
-        }
-        metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
-        ordered_cols = ['fold','lr','batch_size','feature','n_blocks','fusion_layer','num_bottleneck','mbt_use_cross_atn','seed'] + metric_cols
-    # elif model_type == 'GAFT':
-    #     record = {
-    #         'lr': lr,
-    #         'batch_size': batch_size,
-    #         'feature': feature,
-    #         'n_blocks': n_blocks,
-    #         'fusion_layer': fusion_layer,
-    #         'num_bottleneck': n_bottlenecks,
-    #         'lmf_hidden_dim': lmf_hidden_dim,
-    #         'lmf_output_dim': lmf_output_dim,
-    #         'lmf_rank': lmf_rank,
-    #         'lmf_dropout': lmf_dropout,
-    #         'use_lmf_subnet': use_lmf_subnet,
-    #         'gat_dim': gat_dim,
-    #         'gat_dropout': gat_dropout,
-    #         'finetune_mbt': finetune_mbt,
-    #         'mbt_use_cross_atn': mbt_use_cross_atn,
-    #         'seed': seed,
-    #     }
-    #     metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
-    #     ordered_cols = ['fold','lr','batch_size','feature','n_blocks','fusion_layer','num_bottleneck','lmf_hidden_dim','lmf_output_dim','lmf_rank','lmf_dropout','use_lmf_subnet','gat_dim','gat_dropout','finetune_mbt','mbt_use_cross_atn','seed'] + metric_cols
     elif model_type == 'FT_transformer':
         record = {
             'lr': lr,
@@ -183,12 +132,18 @@ def train(disease, feature, model_type, **params):
             'lr': lr,
             'batch_size': batch_size,
             'feature': feature,
-            'num_conv_layers': num_conv_layers,
             'd_token': d_token,
+            'num_layers': num_layers,
+            'base_channels': base_channels,
+            'expansion_factor': expansion_factor,
+            'latent_dim': latent_dim,
+            'fusion_depth': fusion_depth,
+            'dst_embedding_length': dst_embedding_length,
+            'ahl_depth': ahl_depth,
             'seed': seed,
         }
         metric_cols = ['AUC', 'Recall', 'Precision', 'F1']
-        ordered_cols = ['fold','lr','batch_size','feature','num_conv_layers','d_token','seed'] + metric_cols
+        ordered_cols = ['fold','lr','batch_size','feature','d_token','num_layers','base_channels','expansion_factor','latent_dim','fusion_depth','dst_embedding_length','ahl_depth','seed'] + metric_cols
     elif model_type == 'MDL4Microbiome':
         record = {
             'lr': lr,
@@ -232,7 +187,7 @@ def train(disease, feature, model_type, **params):
 
     # 1) 训练/测试划分（使用已有的加载函数，函数内部已标准化与分层切分）
     is_multimodal = (',' in feature)
-    if model_type in ["FT_transformer", "FTMicro"] and is_multimodal:
+    if model_type == "FT_transformer" and is_multimodal:
         raise ValueError(f"{model_type} 仅支持单模态（'ko' 或 'species'）")
 
     if model_type == "FT_transformer":
@@ -241,20 +196,15 @@ def train(disease, feature, model_type, **params):
         Xte = x_test['f1_input']
         print(f"[Data] FT single-modality shapes -> X_train: {Xtr.shape}, X_test: {Xte.shape}")
     elif model_type == 'FTMicro':
-        x_train, x_test, y_train, y_test = load_uni_features(seed=seed, disease=disease, feature=feature)
-        Xtr = x_train['f1_input']
-        Xte = x_test['f1_input']
-        print(f"[Data] FTMicro single-modality shapes -> X_train: {Xtr.shape}, X_test: {Xte.shape}")
+        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
+        Xtr = x_train
+        Xte = x_test
+        print(f"[Data] FTMicro multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
     elif model_type == 'MBT':
         x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
         Xtr = x_train
         Xte = x_test
         print(f"[Data] MBT multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
-    elif model_type == 'GAFT':
-        x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
-        Xtr = x_train
-        Xte = x_test
-        print(f"[Data] GAFT multi-modality shapes -> f1_train: {Xtr['f1_input'].shape}, f2_train: {Xtr['f2_input'].shape}; f1_test: {Xte['f1_input'].shape}, f2_test: {Xte['f2_input'].shape}")
     elif model_type == 'MDL4Microbiome':
         x_train, x_test, y_train, y_test = load_multi_features(seed=seed, disease=disease, feature=feature, noise=noise)
         Xtr = x_train
@@ -343,14 +293,41 @@ def train(disease, feature, model_type, **params):
             )
             module_to_fit = model
         elif model_type == 'FTMicro':
-            n_num_features = X_tr_fold.shape[1]
-            model = UFEN.make_default(
-                n_num_features=n_num_features,
+            f1_dim = X_tr_fold['f1_input'].shape[1]
+            f2_dim = X_tr_fold['f2_input'].shape[1]
+            # 确定哪个是species，哪个是ko
+            if modality_order[0].strip().lower() == 'species':
+                n_species, n_ko = f1_dim, f2_dim
+                first_species = True
+            else:
+                n_species, n_ko = f2_dim, f1_dim
+                first_species = False
+            
+            base_ftmicro = FTMicro.make_default(
+                n_species=n_species,
+                n_ko=n_ko,
                 d_token=d_token,
-                num_conv_layers=num_conv_layers,
-                d_out=1,
+                dst_embedding_length=dst_embedding_length,
+                AHL_depth=ahl_depth,
+                fusion_depth=fusion_depth,
             )
-            module_to_fit = model
+            
+            # 创建wrapper：FTMicro返回(out, y_s, y_ko)，只取out作为主预测
+            class FTMicroWrapper(nn.Module):
+                def __init__(self, ftmicro_model, first_species_flag: bool):
+                    super().__init__()
+                    self.ftmicro = ftmicro_model
+                    self.first_species_flag = first_species_flag
+                
+                def forward(self, f1_input, f2_input):
+                    # FTMicro.forward(species_raw, ko_raw)
+                    if self.first_species_flag:
+                        out, y_s, y_ko = self.ftmicro(f1_input, f2_input)
+                    else:
+                        out, y_s, y_ko = self.ftmicro(f2_input, f1_input)
+                    return out
+            
+            module_to_fit = FTMicroWrapper(base_ftmicro, first_species)
         elif model_type == 'MBT':
             f1_dim = X_tr_fold['f1_input'].shape[1]
             f2_dim = X_tr_fold['f2_input'].shape[1]
@@ -381,49 +358,6 @@ def train(disease, feature, model_type, **params):
                         raw_x = {'species': f2_input, 'ko': f1_input}
                     return self.mbt(raw_x)
             module_to_fit = MBTWrapper(base_mbt, first_species)
-        # elif model_type == 'GAFT':
-        #     f1_dim = X_tr_fold['f1_input'].shape[1]
-        #     f2_dim = X_tr_fold['f2_input'].shape[1]
-        #     if modality_order[0].strip().lower() == 'species':
-        #         n_species_features, n_ko_features = f1_dim, f2_dim
-        #         first_species = True
-        #     else:
-        #         n_species_features, n_ko_features = f2_dim, f1_dim
-        #         first_species = False
-
-        #     base_mbt = MBT.make_default(
-        #         n_species_features=n_species_features,
-        #         n_ko_features=n_ko_features,
-        #         num_layers=n_blocks,
-        #         num_heads=num_heads,
-        #         fusion_layer=fusion_layer,
-        #         n_bottlenecks=n_bottlenecks,
-        #         test_with_bottlenecks=True,
-        #         use_cross_atn=mbt_use_cross_atn,
-        #     )
-
-        #     gaft_model = GAFT(
-        #         mbt_config=base_mbt,
-        #         lmf_hidden_dim=lmf_hidden_dim,
-        #         lmf_output_dim=lmf_output_dim,
-        #         lmf_rank=lmf_rank,
-        #         lmf_dropout=lmf_dropout,
-        #         use_lmf_subnet=use_lmf_subnet,
-        #         gat_dim=gat_dim,
-        #         gat_dropout=gat_dropout,
-        #         finetune_mbt=finetune_mbt,
-        #     )
-
-        #     class GAFTWrapper(nn.Module):
-        #         def __init__(self, gaft, first_species_flag: bool):
-        #             super().__init__(); self.gaft = gaft; self.first_species_flag = first_species_flag
-        #         def forward(self, f1_input, f2_input):
-        #             if self.first_species_flag:
-        #                 return self.gaft(species=f1_input, ko=f2_input)
-        #             else:
-        #                 return self.gaft(species=f2_input, ko=f1_input)
-
-        #     module_to_fit = GAFTWrapper(gaft_model, first_species)
         elif model_type == 'MDL4Microbiome':
             f1_dim = X_tr_fold['f1_input'].shape[1]
             f2_dim = X_tr_fold['f2_input'].shape[1]
@@ -514,13 +448,13 @@ def train(disease, feature, model_type, **params):
 
         # 使用内置 roc_auc 评分器，自动选择正类概率/决策函数，避免自定义展平导致的长度不一致
         auc_cb = EpochScoring('roc_auc', lower_is_better=False, on_train=False, name='valid_auc')
-        # 早停：若 valid_auc 在 patience 轮内没有提升则停止训练
+        # 早停：若 valid_auc/train_loss 在 patience 轮内没有提升则停止训练
         early_stop_cb = EarlyStopping(
-            monitor='valid_auc', patience=20,
-            threshold=0, threshold_mode='rel', lower_is_better=False
+            monitor='train_loss', patience=10,
+            threshold=0, threshold_mode='rel', lower_is_better=True
         )
         ckpt_dir = os.path.join('./Checkpoints', disease, '777', f'{model_type}', f'fold_{fold_i}')
-        save_cb = SaveModel(ckpt_dir, monitor='valid_auc_best')
+        save_cb = SaveModel(ckpt_dir, monitor='train_loss_best')
 
         # 选择损失（BCEWithLogits）按折动态设置 pos_weight = neg/pos
         y_tr_labels = y_tr_fold.squeeze().astype(int)
