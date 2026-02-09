@@ -109,9 +109,11 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     print("Training configuration:", args)
 
-    train(
-        disease=args.disease,
-        feature=args.feature,
-        model_type=args.model_type,
-        **params
-    )
+    for seed in [392, 412, 432, 452, 472]:
+        train(
+            disease=args.disease,
+            feature=args.feature,
+            model_type=args.model_type,
+            seed=seed,
+            **params
+        )

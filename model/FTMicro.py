@@ -661,8 +661,8 @@ class FTMicro(nn.Module):
         feat_ko, y_ko = self.ko_ufen(ko_raw)
 
         # Step 2: 特征嵌入
-        h_s = self.embedding_species(feat_s)[:, :8] # [B, 8, D]
-        h_ko = self.embedding_ko(feat_ko)[:, :8] # [B, 8, D]
+        h_s = self.embedding_species(feat_s)[:, :self.dst_embedding_length_species] # [B, 8, D]
+        h_ko = self.embedding_ko(feat_ko)[:, :self.dst_embedding_length_ko] # [B, 8, D]
 
         # Step 3: 获取主模态的多尺度特征
         h_main_list = self.main_encoder(h_s)
