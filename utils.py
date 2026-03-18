@@ -44,19 +44,25 @@ def check_sample_order(files: List[str]) -> None:
             assert 0, "The order of samples is inconsistent across files."
 
 def check_record(paras: Dict, df_path: str) -> bool:
-    """
-    :param paras: need to check
-    :param res_df:
-    :return:
-    """
     if not os.path.exists(df_path):
         return True
-    print(paras)
-    res_df = pd.read_csv(df_path)[list(paras.keys())]
 
-    for d in res_df.to_dict(orient='records'):
-        if d == dict(paras):
+    res_df = pd.read_csv(df_path)
+    # 去掉 summary 行
+    if 'seed' in res_df.columns:
+        res_df = res_df[res_df['seed'].astype(str) != 'all']
+    # 去重时不比较 fold（fold 仅表示当前批次第几轮）
+    compare_keys = [k for k in paras.keys() if k != 'fold']
+    # 只保留需要比较的列
+    res_df = res_df[compare_keys]
+    # 统一转字符串比较
+    paras_str = {k: str(paras[k]) for k in compare_keys}
+    
+    for _, row in res_df.iterrows():
+        row_dict = {k: str(row[k]) for k in compare_keys}
+        if row_dict == paras_str:
             return False
+
     return True
 
 # 评分指标
@@ -71,39 +77,73 @@ def check_record(paras: Dict, df_path: str) -> bool:
 #     return f1_score(y, y_pred)
 
 
-def evaluate(net: BaseEstimator, X: np.ndarray, y: np.ndarray) -> dict[str, float]:
-    """统一评估接口：兼容 predict_proba 返回 (N,), (N,1) 或 (N,2)。
+# def evaluate(net: BaseEstimator, X: np.ndarray, y: np.ndarray) -> dict[str, float]:
+#     """统一评估接口：兼容 predict_proba 返回 (N,), (N,1) 或 (N,2)。
 
-    - 若为 (N,2)，按 [:,1] 取正类概率；
-    - 若为 (N,1) 或 (N,)，按该列/向量即为正类概率；
-    - 指标：AUC、Recall、Precision、F1（与当前 train.py 需求一致）。
-    """
+#     - 若为 (N,2)，按 [:,1] 取正类概率；
+#     - 若为 (N,1) 或 (N,)，按该列/向量即为正类概率；
+#     - 指标：AUC、Recall、Precision、F1（与当前 train.py 需求一致）。
+#     """
+#     try:
+#         y_true = y
+#         y_pred = net.predict(X)
+#         y_prob = net.predict_proba(X)
+
+#         # 取正类概率
+#         if y_prob.ndim == 1:
+#             pos_prob = y_prob
+#         elif y_prob.shape[1] == 1:
+#             pos_prob = y_prob[:, 0]
+#         else:
+#             pos_prob = y_prob[:, 1]
+
+#         # 使用 zero_division=0 避免“无预测正类”时 Precision 报 UndefinedMetricWarning
+#         metrics = {
+#             'AUC': round(roc_auc_score(y_true, pos_prob), 4),
+#             'Recall': round(recall_score(y_true, y_pred), 4),
+#             'Precision': round(precision_score(y_true, y_pred, zero_division=0), 4),
+#             'F1': round(f1_score(y_true, y_pred), 4),  
+#         }
+#         return metrics
+
+#     except Exception:
+#         return {
+#             'AUC': -1.0,
+#             'Recall': -1.0,
+#             'Precision': -1.0,
+#             'F1': -1.0,
+#         }
+
+
+def evaluate(net: BaseEstimator, X: np.ndarray, y: np.ndarray) -> (dict[str, float], pd.DataFrame):
+    y_true, y_pred = y, net.predict(X)
+    y_prob = net.predict_proba(X)
+    #print(y_true.shape)
+    #print(y_prob.shape)
+    df = pd.DataFrame({
+        'y_true': y_true,
+        'y_prob_0': y_prob[:, 0].squeeze(),  # 第一个类别的概率
+        'y_prob_1': y_prob[:, 1].squeeze()  # 第二个类别的概率
+    })
     try:
-        y_true = y
-        y_pred = net.predict(X)
+        y_true, y_pred = y, net.predict(X)
         y_prob = net.predict_proba(X)
-
-        # 取正类概率
-        if y_prob.ndim == 1:
-            pos_prob = y_prob
-        elif y_prob.shape[1] == 1:
-            pos_prob = y_prob[:, 0]
-        else:
-            pos_prob = y_prob[:, 1]
-
-        # 使用 zero_division=0 避免“无预测正类”时 Precision 报 UndefinedMetricWarning
+        # 记录 预测值 和 准确值
+        # Performance Metrics: AUC, ACC, Recall, Precision, F1_score
         metrics = {
-            'AUC': round(roc_auc_score(y_true, pos_prob), 4),
+            'AUC': round(roc_auc_score(y_true, y_prob[:, 1]), 4),
+            'ACC': round(accuracy_score(y_true, y_pred), 4),
             'Recall': round(recall_score(y_true, y_pred), 4),
-            'Precision': round(precision_score(y_true, y_pred, zero_division=0), 4),
-            'F1': round(f1_score(y_true, y_pred), 4),  
+            'Precision': round(precision_score(y_true, y_pred), 4),
+            'F1': round(f1_score(y_true, y_pred), 4)
         }
-        return metrics
+        return metrics, df
 
-    except Exception:
+    except:
         return {
             'AUC': -1.0,
+            'ACC': -1.0,
             'Recall': -1.0,
             'Precision': -1.0,
-            'F1': -1.0,
-        }
+            'F1': -1.0
+        }, pd.DataFrame({})

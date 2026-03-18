@@ -636,9 +636,9 @@ class MBT(nn.Module):
         x_tokens = self.tokenize_inputs(raw_x)
 
         # 可选：在进入 Encoder 之前进行一次按模态的交叉注意力对齐
-        if self.use_cross_atn:
-            init_embed = x_tokens
-            x_tokens = {m: self.cross_attns[m](x_tokens[m], init_embed[m]) for m in self.modality_fusion}
+        # if self.use_cross_atn:
+        #    init_embed = x_tokens
+        #    x_tokens = {m: self.cross_attns[m](x_tokens[m], init_embed[m]) for m in self.modality_fusion}
 
         # 维度校验
         B = next(iter(x_tokens.values())).size(0)

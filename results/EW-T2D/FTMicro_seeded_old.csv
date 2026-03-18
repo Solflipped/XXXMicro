@@ -1,0 +1,6 @@
+lr,batch_size,feature,d_token,num_layers,base_channels,expansion_factor,latent_dim,fusion_depth,dst_embedding_length,ahl_depth,seed,AUC,Recall,Precision,F1
+0.0001,8,"species,ko",96,4,96,2,512,2,8,3,392,0.7778,0.6364,0.7,0.6667
+0.0001,8,"species,ko",96,4,96,2,512,2,8,3,412,0.8182,0.9091,0.7143,0.8
+0.0001,8,"species,ko",96,4,96,2,512,2,8,3,432,0.8586,0.8182,0.75,0.7826
+0.0001,8,"species,ko",96,4,96,2,512,2,8,3,452,0.8182,0.8182,0.6429,0.72
+0.0001,8,"species,ko",96,4,96,2,512,2,8,3,472,0.4747,1.0,0.55,0.7097

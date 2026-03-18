@@ -13,35 +13,18 @@ import pandas as pd
 from typing import List, Any, Dict
 
 
-def setup_seed(seed: int, deterministic: bool = False) -> None:
-    """
-    设置全局随机种子以提高可复现性。
-    deterministic: 若为 True，将尝试启用 PyTorch 的确定性算法（可能导致性能下降或抛出异常）。
-    """
+def setup_seed(seed: int) -> None:
     np.random.seed(seed)
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
-
-    # cuBLAS workspace config helps make some operations deterministic on CUDA (optional)
-    os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
-
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-
-    # CPU/GPU deterministic flags
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    if deterministic:
-        torch.backends.cudnn.deterministic = True
-        try:
-            torch.use_deterministic_algorithms(True)
-        except Exception as e:
-            # 某些环境/版本可能不支持所有操作的确定性实现，捕获但不终止
-            print(f"Warning: use_deterministic_algorithms failed: {e}")
-    else:
-        # 如果不要求严格确定性，仍建议关闭 benchmark 保持可复现性更好
-        torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.enabled = False  # 禁用cudnn使用非确定性算法
+    torch.use_deterministic_algorithms(True)
 
 # 评分指标
 def my_auc(net: BaseEstimator, X: np.ndarray, y: np.ndarray) -> float:

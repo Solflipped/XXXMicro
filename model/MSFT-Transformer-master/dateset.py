@@ -50,7 +50,7 @@ def load_single_features(seed: int, disease: str, feature: List):
     :return:
     """
     print(feature)
-    path = f"./Data/{disease}/{feature[0]}_abundance.csv"
+    path = f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{feature[0]}_abundance.csv"
 
     data = dataset(path, use_cols=None)  # Z-Score
 
@@ -79,12 +79,11 @@ def load_full_features(seed: int, disease: str, feature: List, sort: bool=False,
     """
     print(feature)
     if noise:
-        f1_path = f"./Data/{disease}/{feature[0]}_noisy_{noise}_abundance.csv"
-        f2_path = f"./Data/{disease}/{feature[1]}_noisy_{noise}_abundance.csv"
+        f1_path = f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{feature[0]}_noisy_{noise}_abundance.csv"
+        f2_path = f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{feature[1]}_noisy_{noise}_abundance.csv"
     else:
-        f1_path = f"./Data/{disease}/{feature[0]}_abundance.csv"
-        f2_path = f"./Data/{disease}/{feature[1]}_abundance.csv"
-
+        f1_path = f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{feature[0]}_abundance.csv"
+        f2_path = f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{feature[1]}_abundance.csv"
     check_sample_order([f1_path, f2_path])
 
     f1_data = dataset(f1_path, use_cols=None, sort=sort)  # Z-Score
@@ -116,8 +115,8 @@ def load_full_features(seed: int, disease: str, feature: List, sort: bool=False,
 
 def load_features(disease: str, features: List):
     fps = [
-        f"./Data/{disease}/{features[0]}_abundance.csv",
-        f"./Data/{disease}/{features[1]}_abundance.csv"
+        f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{features[0]}_abundance.csv",
+        f"/root/lanyun-tmp/XXXMicro/Data/{disease}/{features[1]}_abundance.csv"
     ]  # 根据特征名字提取路径
 
     # 根据 fps 构建ScliDict

@@ -63,7 +63,7 @@ def train(disease: str, feature: str, seed: int, model_type: str,
     if model_type == "FT":
         x_train, x_test, y_train, y_test = load_single_features(seed=seed, disease=disease, feature=feature)
         inputs_dim = OrderedDict({"f1_input": x_train['f1_input'].shape})  # Dict, shape of each input
-    elif disease in ['EW-T2D', 'LC', 'C-T2D', 'IBD', 'Obesity', 'AD']:
+    elif disease in ['EW-T2D', 'LC', 'C-T2D', 'IBD', 'Obesity']:
         x_train, x_test, y_train, y_test = load_full_features(seed=seed, disease=disease, feature=feature, noise=noise)
         inputs_dim = OrderedDict({"f1_input": x_train['f1_input'].shape,
                                   "f2_input": x_train['f2_input'].shape})  # Dict, shape of each input
