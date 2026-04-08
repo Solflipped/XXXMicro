@@ -1,6 +1,6 @@
 # 编写入口文件
 import argparse
-from train import train
+from train_old8 import train
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     import os
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     print(args)
-    for seed in [392, 412, 432, 452, 472]:
+    for seed in [42, 412, 432, 452, 472,777,787,473,223,55,123,288]:
         train(seed=seed, disease=args.disease, feature=args.feature,
               model_type=args.model_type, use_config=args.use_config, use_bottleneck=args.use_bottleneck,
               use_cross_atn=args.use_cross_atn, btn_init=args.btn_init, mode=0, **params

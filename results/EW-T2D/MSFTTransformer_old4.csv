@@ -1,0 +1,13 @@
+fold,lr,batch_size,feature,n_layers,num_bottleneck,use_bottleneck,btn_init,use_cross_atn,AUC,ACC,Recall,Precision,F1
+1,0.0001,16,"ko,species",1,2,True,embed,True,0.6162,0.65,0.7273,0.6667,0.6957
+2,0.0001,16,"ko,species",1,2,True,embed,True,0.75,0.6316,0.3636,1.0,0.5333
+3,0.0001,16,"ko,species",1,2,True,embed,True,0.8523,0.6316,0.5455,0.75,0.6316
+4,0.0001,16,"ko,species",1,2,True,embed,True,0.7,0.5789,0.8,0.5714,0.6667
+5,0.0001,16,"ko,species",1,2,True,embed,True,0.7889,0.6842,0.8,0.6667,0.7273
+all,0.0001,16,"ko,species",1,2,True,embed,True,0.7415 ± 0.0800,0.6353 ± 0.0341,0.6473 ± 0.1696,0.7310 ± 0.1459,0.6509 ± 0.0668
+1,0.0001,16,"ko,species",2,4,True,embed,True,0.596,0.55,0.5455,0.6,0.5714
+2,0.0001,16,"ko,species",2,4,True,embed,True,0.8409,0.6842,0.7273,0.7273,0.7273
+3,0.0001,16,"ko,species",2,4,True,embed,True,0.8864,0.7895,0.9091,0.7692,0.8333
+4,0.0001,16,"ko,species",2,4,True,embed,True,0.6444,0.7368,0.9,0.6923,0.7826
+5,0.0001,16,"ko,species",2,4,True,embed,True,0.7444,0.6842,0.6,0.75,0.6667
+all,0.0001,16,"ko,species",2,4,True,embed,True,0.7424 ± 0.1109,0.6889 ± 0.0797,0.7364 ± 0.1495,0.7078 ± 0.0597,0.7163 ± 0.0913

@@ -4,43 +4,58 @@ conda activate hj_env
 
 
 # EW-T2D
- python main.py -d EW-T2D -f species -m FT_transformer --gpu 0 \
-  --n_blocks 4 \
-  --batch_size 8 \
-  --learning_rate 1e-4 
-
-# python main.py -d EW-T2D -f ko -m UFEN --gpu 0 \
-#   --d_token 64 \
-#   --base_channels 64 \
-#   --expansion_factor 2 \
-#   --num_layers 4 \
-#   --latent_dim 512 \
+# python main.py -d EW-T2D -f species -m FT_transformer --gpu 0 \
+#   --n_blocks 1 \
 #   --batch_size 8 \
-#   --learning_rate 1e-4 
+#   --learning_rate 1e-3
+
+python main.py -d EW-T2D -f ko -m UFEN --gpu 0 \
+  --d_token 64 \
+  --batch_size 16 \
+  --learning_rate 1e-4
 
 # python main.py -d EW-T2D -f species,ko -m MBT --gpu 0 \
-#   --n_blocks 4 \
+#   --n_blocks 2 \
 #   --fusion_layer 2 \
 #   --num_bottleneck 4 \
 #   --batch_size 8 \
 #   --learning_rate 1e-4 
 
-# python main.py -d EW-T2D -f species -m FT_transformer --gpu 0 \
-#   --batch_size 8 \
-#   --n_blocks 4 \
-#   --learning_rate 1e-4 
 
-# python main.py -d EW-T2D -f ko,species -m FTMicro --gpu 0 \
-#   --batch_size 16 \
-#   --d_token 96 \
-#   --fusion_depth 4 \
-#   --dst_embedding_length 4 \
-#   --ahl_depth 3 \
+# python main.py -d EW-T2D -f ko,species -m MSFTTransformer --gpu 0 \
+#   --n_layers 1 \
+#   --batch_size 8 \
+#   --num_bottleneck 2 \
+#   --use_bottleneck --btn_init "embed" \
 #   --learning_rate 1e-4
 
-  
-# python main.py -d EW-T2D -f ko,species -m MSFTTransformer --gpu 0 \
+# python main.py -d EW-T2D -f ko,species -m MDL4Microbiome --gpu 0 \
+#   --batch_size 8 \
+#   --learning_rate 1e-4
+
+
+# C-T2D
+# python main.py -d C-T2D -f species -m FT_transformer --gpu 0 \
 #   --n_blocks 2 \
 #   --batch_size 16 \
-#   --num_bottleneck 4 \
+#   --learning_rate 1e-5
+
+
+
+# LC
+# python main.py -d LC -f species -m FT_transformer --gpu 0 \
+#   --n_blocks 2 \
+#   --batch_size 8 \
+#   --learning_rate 1e-4
+
+# python main.py -d LC -f ko,species -m MSFTTransformer --gpu 0 \
+#   --n_layers 1 \
+#   --batch_size 8 \
+#   --num_bottleneck 2 \
+#   --use_bottleneck --use_cross_atn --btn_init "embed" \
+#   --learning_rate 0.001
+
+# python main.py -d LC -f species -m UFEN --gpu 0 \
+#   --d_token 64 \
+#   --batch_size 16 \
 #   --learning_rate 1e-4

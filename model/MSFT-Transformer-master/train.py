@@ -160,7 +160,7 @@ def train(disease: str, feature: str, seed: int, model_type: str,
         train_split=ValidSplit(0.2, random_state=42),
         device=device,
         optimizer=torch.optim.AdamW,
-        optimizer__weight_decay=1e-4,
+        optimizer__weight_decay=0.1,
         batch_size=batch_size,
         callbacks=[EarlyStopping(patience=15),
                    SaveModel(disease, seed),]

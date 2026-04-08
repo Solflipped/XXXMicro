@@ -316,13 +316,20 @@ class MDL4Microbiome(nn.Module):
             batchnorm=batchnorm,
         )
 
-    def forward(self, x):
+    def forward(self, x=None, **kwargs):
         """Forward pass.
 
         - Unimodal: x is a FloatTensor [B, D]
         - Multimodal: x is a dict[str, FloatTensor], each [B, D_mod]
         Returns: logits [B, 1]
         """
+        # skorch passes dict-like inputs as keyword args: module_(**x_dict)
+        if kwargs:
+            x = kwargs
+
+        if x is None:
+            raise ValueError("Input is None. Provide a tensor, dict, or keyword inputs.")
+
         if self.single_encoder:
             z = self.encoder(x)
             return self.head(z)

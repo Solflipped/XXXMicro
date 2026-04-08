@@ -26,26 +26,26 @@ python test_pytorch.py
 # python -u main.py -d AD -f ko,species -m MSFTTransformer -bs 8 -lr 1e-4 --gpu 0 -num_b 4 -nb 4
 # python -u main.py -d AD -f ko,species -m FT_Vote -bs 8 -lr 1e-4 --gpu 0 -nb 4
 # python -u main.py -d AD -f ko,species -m GAFT -bs 8 -nb 4 -fl 2 -num_b 4 -lr 1e-4 --gpu 0 --finetune_mbt
-python main.py -d AD -f ko,species -m GAFT \
-  --n_blocks 4 \
-  --fusion_layer 2 \
-  --num_bottleneck 4 \
-  --mbt_use_cross_atn \
-  --lmf_hidden_dim 128 \
-  --lmf_output_dim 256 \
-  --lmf_rank 4 \
-  --use_lmf_subnet \
-  --gat_dim 256 \
-  --batch_size 16 \
-  --learning_rate 1e-4 \
-  --finetune_mbt
+# python main.py -d AD -f ko,species -m GAFT \
+#   --n_blocks 2 \
+#   --fusion_layer 2 \
+#   --num_bottleneck 4 \
+#   --mbt_use_cross_atn \
+#   --lmf_hidden_dim 128 \
+#   --lmf_output_dim 256 \
+#   --lmf_rank 4 \
+#   --use_lmf_subnet \
+#   --gat_dim 256 \
+#   --batch_size 16 \
+#   --learning_rate 1e-4 \
+#   --finetune_mbt
 
 
 # EW-T2D
 # python -u main.py -d EW-T2D -f ko,species -m MBT -bs 8 -lr 1e-4 --gpu 0 -fl 2  -num_b 4 -nb 4
 # python -u main.py -d EW-T2D -f ko,species -m MSFTTransformer -bs 8 -lr 1e-4 --gpu 0 -num_b 4 -nb 4
 # python -u main.py -d EW-T2D -f ko,species -m FT_Vote -bs 8 -lr 1e-4 --gpu 0 -nb 4
-# python -u main.py -d EW-T2D -f species -m FT_transformer -bs 8 -lr 1e-4 --gpu 0 -nb 6
+python -u main.py -d EW-T2D -f species -m FT_transformer -bs 8 -lr 1e-4 --gpu 0 -nb 2
 # python -u main.py -d EW-T2D -f ko,species -m GAFT -bs 8 -nb 4 -fl 2 -num_b 4 -lr 1e-4 --gpu 0 --finetune_mbt
 # python main.py -d EW-T2D -f ko,species -m GAFT \
 #   --n_blocks 4 \

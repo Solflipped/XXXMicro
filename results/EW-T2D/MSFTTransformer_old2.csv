@@ -1,0 +1,19 @@
+fold,lr,batch_size,feature,n_layers,num_bottleneck,use_bottleneck,btn_init,use_cross_atn,AUC,ACC,Recall,Precision,F1
+1,0.0001,16,"species,ko",2,8,True,embed,True,0.5455,0.55,0.4545,0.625,0.5263
+2,0.0001,16,"species,ko",2,8,True,embed,True,0.8068,0.6842,0.8182,0.6923,0.75
+3,0.0001,16,"species,ko",2,8,True,embed,True,0.8636,0.6842,0.9091,0.6667,0.7692
+4,0.0001,16,"species,ko",2,8,True,embed,True,0.6444,0.7368,0.9,0.6923,0.7826
+5,0.0001,16,"species,ko",2,8,True,embed,True,0.7889,0.8421,0.8,0.8889,0.8421
+all,0.0001,16,"species,ko",2,8,True,embed,True,0.7298 ± 0.1171,0.6995 ± 0.0944,0.7764 ± 0.1666,0.7130 ± 0.0913,0.7340 ± 0.1083
+1,0.0001,8,"species,ko",2,4,True,embed,True,0.5152,0.6,0.5455,0.6667,0.6
+2,0.0001,8,"species,ko",2,4,True,embed,True,0.7955,0.5789,0.7273,0.6154,0.6667
+3,0.0001,8,"species,ko",2,4,True,embed,True,0.8977,0.7895,0.7273,0.8889,0.8
+4,0.0001,8,"species,ko",2,4,True,embed,True,0.7889,0.6842,0.8,0.6667,0.7273
+5,0.0001,8,"species,ko",2,4,True,embed,True,0.7889,0.7368,0.7,0.7778,0.7368
+all,0.0001,8,"species,ko",2,4,True,embed,True,0.7572 ± 0.1279,0.6779 ± 0.0798,0.7000 ± 0.0841,0.7231 ± 0.0984,0.7062 ± 0.0679
+1,0.001,8,"ko,species",2,4,True,embed,True,0.5758,0.45,0.3636,0.5,0.4211
+2,0.001,8,"ko,species",2,4,True,embed,True,0.8409,0.7368,0.9091,0.7143,0.8
+3,0.001,8,"ko,species",2,4,True,embed,True,0.9205,0.8421,0.9091,0.8333,0.8696
+4,0.001,8,"ko,species",2,4,True,embed,True,0.6667,0.6842,0.8,0.6667,0.7273
+5,0.001,8,"ko,species",2,4,True,embed,True,0.7889,0.6842,0.7,0.7,0.7
+all,0.001,8,"ko,species",2,4,True,embed,True,0.7586 ± 0.1231,0.6795 ± 0.1284,0.7364 ± 0.2020,0.6829 ± 0.1073,0.7036 ± 0.1531

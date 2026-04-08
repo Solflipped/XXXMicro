@@ -1,0 +1,7 @@
+fold,lr,batch_size,feature,model_type,n_blocks,AUC,ACC,Recall,Precision,F1
+1,0.0001,8,species,FT_transformer,2,0.6768,0.65,0.4545,0.8333,0.5882
+2,0.0001,8,species,FT_transformer,2,0.7955,0.7368,0.6364,0.875,0.7368
+3,0.0001,8,species,FT_transformer,2,0.7727,0.7895,0.8182,0.8182,0.8182
+4,0.0001,8,species,FT_transformer,2,0.7111,0.5789,0.9,0.5625,0.6923
+5,0.0001,8,species,FT_transformer,2,0.6111,0.5789,0.6,0.6,0.6
+all,0.0001,8,species,FT_transformer,2,0.7134 ± 0.0664,0.6668 ± 0.0845,0.6818 ± 0.1591,0.7378 ± 0.1297,0.6871 ± 0.0861
