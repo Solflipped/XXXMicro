@@ -12,7 +12,7 @@ from model.FT_transformer import FTTransformer
 from model.MBT import MBT
 from model.MDL4Microbiome import MDL4MIndividual, MDL4MShared
 import numpy as np
-import feature_selection as fs
+import feature_selection_old2 as fs
 
 
 

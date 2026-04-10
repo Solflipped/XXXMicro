@@ -11,11 +11,11 @@ class residual_block(nn.Module):
         super(residual_block, self).__init__()
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, 
                               stride=stride, padding=kernel_size//2, bias=False)
-        self.bn1 = nn.BatchNorm1d(out_channels)
+        self.gn1 = nn.GroupNorm(num_groups=8, num_channels=out_channels)
         self.relu = nn.LeakyReLU(0.2, inplace=True)
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size,
                               stride=1, padding=kernel_size//2, bias=False)
-        self.bn2 = nn.BatchNorm1d(out_channels)
+        self.gn2 = nn.GroupNorm(num_groups=8, num_channels=out_channels)
         
         self.downsample = downsample
         
@@ -23,11 +23,10 @@ class residual_block(nn.Module):
         identity = x
         
         out = self.conv1(x)
-        out = self.bn1(out)
+        out = self.gn1(out)
         out = self.relu(out)
-        
         out = self.conv2(out)
-        out = self.bn2(out)
+        out = self.gn2(out)
         
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -44,17 +43,17 @@ class attention_gate(nn.Module):
         super(attention_gate, self).__init__()
         self.W_g = nn.Sequential(
             nn.Conv1d(F_g, F_int, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm1d(F_int)
+            nn.GroupNorm(8, F_int)
         )
         
         self.W_x = nn.Sequential(
             nn.Conv1d(F_l, F_int, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm1d(F_int)
+            nn.GroupNorm(8, F_int)
         )
         
         self.psi = nn.Sequential(
             nn.Conv1d(F_int, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm1d(1),
+            nn.GroupNorm(1, 1),
             nn.Sigmoid()
         )
         
@@ -68,7 +67,7 @@ class attention_gate(nn.Module):
         
         # 确保尺寸匹配
         if g1.shape[2] != x1.shape[2]:
-            g1 = F.interpolate(g1, size=x1.shape[2], mode='linear', align_corners=False)
+            g1 = F.interpolate(g1, size=x1.shape[2], mode='nearest')
         
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
@@ -97,7 +96,7 @@ class Bridge(nn.Module):
     def forward(self, x):
         mu = self.fc_mu(x)
         logvar = self.fc_var(x)
-        logvar = torch.clamp(logvar, -10, 10)
+        logvar = torch.clamp(logvar, max=10.0) # 限制上限防爆炸,但保留微小且确信的生物标记物特征
         z = self.reparameterize(mu, logvar)
         return z, mu, logvar
 
@@ -109,7 +108,7 @@ class UnimodalPredictor(nn.Module):
         # [batch_size, d_token, n_num_features] -> [batch_size, 1, n_num_features]
         self.feature_reduction = nn.Sequential(
             nn.Conv1d(d_token, 8, kernel_size=1),
-            nn.BatchNorm1d(8),
+            nn.GroupNorm(4, 8),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv1d(8, 1, kernel_size=1)
         )
@@ -153,7 +152,7 @@ class UFEN(nn.Module):
         self.encoders = nn.ModuleList()
         in_ch = d_token
         for ch in self.channels:
-            downsample = nn.Sequential(nn.Conv1d(in_ch, ch, 1), nn.BatchNorm1d(ch))
+            downsample = nn.Sequential(nn.Conv1d(in_ch, ch, 1), nn.GroupNorm(8, ch))
             self.encoders.append(residual_block(in_ch, ch, downsample=downsample))
             in_ch = ch
             
@@ -169,7 +168,7 @@ class UFEN(nn.Module):
         for i in range(num_layers-1, -1, -1):
             self.attention_gates.append(attention_gate(curr_ch, self.channels[i], self.channels[i]//2))
             dec_in = curr_ch + self.channels[i]
-            downsample = nn.Sequential(nn.Conv1d(dec_in, self.channels[i], 1), nn.BatchNorm1d(self.channels[i]))
+            downsample = nn.Sequential(nn.Conv1d(dec_in, self.channels[i], 1), nn.GroupNorm(8, self.channels[i]))
             self.decoders.append(residual_block(dec_in, self.channels[i], downsample=downsample))
             # 每一层级重构器 (用于生成 EnsDeepDP 的疾病评分)
             self.side_reconstructors.append(nn.Conv1d(self.channels[i], d_token, 1))
@@ -198,7 +197,7 @@ class UFEN(nn.Module):
         for i in range(self.num_layers):
             en_idx = self.num_layers - 1 - i
             if curr.shape[2] != en_outs[en_idx].shape[2]:
-                curr = F.interpolate(curr, size=en_outs[en_idx].shape[2], mode='linear')
+                curr = F.interpolate(curr, size=en_outs[en_idx].shape[2], mode='nearest')
             
             # 注意力融合
             attended = self.attention_gates[i](curr, en_outs[en_idx])
@@ -206,21 +205,26 @@ class UFEN(nn.Module):
             
             # 提取该层重构误差 
             side_out = self.side_reconstructors[i](curr)
-            x_target = F.interpolate(x_tokens, size=side_out.shape[2], mode='linear')
+            if side_out.shape[2] != x_tokens.shape[2]:
+                x_target = F.interpolate(x_tokens, size=side_out.shape[2], mode='nearest')
+            else:
+                x_target = x_tokens
             err = F.mse_loss(side_out, x_target, reduction='none').mean(dim=[1, 2])
             scale_errors.append(err)
             
         # 5. 最终残差计算
         feat_rec = self.final_op(curr)
         if feat_rec.shape[2] != x_tokens.shape[2]:
-            feat_rec = F.interpolate(feat_rec, size=x_tokens.shape[2], mode='linear')
+            feat_rec = F.interpolate(feat_rec, size=x_tokens.shape[2], mode='nearest')
         final_residual = x_tokens - feat_rec
         
         # 6. 集成预测
         scale_errors = torch.stack(scale_errors, dim=1)
         logits = self.predictor(final_residual, scale_errors)
+        # 形状转置为：[batch_size, n_num_features, d_token]  后续模块使用
+        out_seq = final_residual.transpose(1, 2)
         
-        return logits, mu, logvar
+        return logits, mu, logvar, out_seq
 
     @classmethod
     def make_default(
@@ -251,7 +255,7 @@ class UFENNet(NeuralNetBinaryClassifier):
     # 1. 重写 get_loss 方法，计算分类损失 + KLD 损失  (损失计算器)
     def get_loss(self, y_pred, y_true, *args, **kwargs):
         # 解包 UFEN 的返回结果
-        logits, mu, logvar = y_pred
+        logits, mu, logvar, _ = y_pred
         y_true = y_true.float().view(-1)
         
         # 1. 分类损失 (BCE)
@@ -259,13 +263,13 @@ class UFENNet(NeuralNetBinaryClassifier):
         
         # 2. KLD 损失 (VAE 正则化)
         # 强制潜在分布趋向标准正态分布 
-        logvar = torch.clamp(logvar, -10, 10)
-        kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=-1)
-        loss_kld = kld.mean() 
+        logvar_for_kld = torch.clamp(logvar, min=-10.0)
+        kld = -0.5 * torch.sum(1 + logvar_for_kld - mu.pow(2) - logvar_for_kld.exp(), dim=-1)
+        loss_kld = kld.mean()
 
         # 3. 训练初期更关注分类损失，逐渐增加 KLD 的权重
-        epoch = len(self.history)
-        current_beta = min(1.0, (epoch + 1) / 20) * self.beta
+        epoch = len(self.history) if hasattr(self, 'history') and self.history else 0
+        current_beta = min(1.0, (epoch + 1) / 50) * self.beta
         total_loss = loss_bce + current_beta * loss_kld
     
         return loss_bce if torch.isnan(total_loss) else total_loss

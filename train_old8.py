@@ -9,14 +9,14 @@ from skorch.dataset import ValidSplit
 from skorch.helper import predefined_split, SliceDict
 from skorch.callbacks import Callback, EpochScoring, EarlyStopping
 from sklearn.model_selection import StratifiedKFold, RepeatedStratifiedKFold
-from feature_selection import feature_selection_single,feature_selection_multi
+from feature_selection_old2 import feature_selection_single,feature_selection_multi
 from dataset import load_uni_features, load_multi_features
 from model.FT_transformer import FTTransformer
 from model.FTMicro import FTMicro
 from model.MBT import MBT
 from model.MDL4Microbiome import MDL4Microbiome
 from model.MSFT import MTMFTransformer, FT_Vote
-from model.UFEN_old1 import UFEN
+from model.UFEN import UFEN
 from utils import evaluate, setup_seed, check_record
 
 def save_best_model(net, output_dir: str):

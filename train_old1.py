@@ -11,7 +11,7 @@ from dataset import load_uni_features, load_multi_features, load_all_uni_feature
 from model.FT_transformer import FTTransformer
 from model.MBT import MBT
 import numpy as np
-import feature_selection as fs
+import feature_selection_old2 as fs
 
 
 

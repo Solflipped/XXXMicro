@@ -46,7 +46,9 @@ def check_sample_order(files: List[str]) -> None:
 def check_record(paras: dict, df_path: str) -> bool:
     """
     检查当前超参数组合是否已经完整训练过。
-    逻辑：如果 CSV 中存在 fold='all' 且超参数一致的记录，说明已跑完，返回 False。
+    逻辑：在 CSV 中寻找是否存在一行，其参数与 paras (通常包含 seed='all') 完全一致。
+    返回 False：说明已存在（不用跑了）
+    返回 True：说明不存在（需要跑）
     """
     if not os.path.exists(df_path):
         return True
@@ -59,28 +61,26 @@ def check_record(paras: dict, df_path: str) -> bool:
     if res_df.empty:
         return True
 
-    # 1. 过滤出汇总行 (我们只关心跑完的任务，即 fold='all' 的行)
-    # 注意：这里要确保 fold 列存在，且统一转为字符串比较
-    if 'fold' in res_df.columns:
-        summary_df = res_df[res_df['fold'].astype(str) == 'all'].copy()
-    else:
-        return True
+    # 初始化全为 True 的掩码
+    match_mask = pd.Series(True, index=res_df.index)
 
-    if summary_df.empty:
-        return True
+    # 遍历传入的条件字典 (包含 seed='all', lr, batch_size 等)
+    for k, v in paras.items():
+        if k not in res_df.columns:
+            return True
+            
+        if isinstance(v, float):
+            try:
+                # 处理浮点数，容许微小的精度误差，防止 1e-4 与 0.0001 不匹配
+                csv_col_float = pd.to_numeric(res_df[k], errors='coerce')
+                match_mask &= np.isclose(csv_col_float, v, atol=1e-8, equal_nan=False)
+            except Exception:
+                match_mask &= (res_df[k].astype(str) == str(v))
+        else:
+            # 处理字符串和整数 (比如 "all", "ko", 8)
+            match_mask &= (res_df[k].astype(str) == str(v))
 
-    # 2. 确定需要比较的超参数列 (排除 fold 和 评价指标列)
-    # 评价指标通常是在训练后才有的，paras 字典里不包含它们
-    compare_keys = [k for k in paras.keys() if k in summary_df.columns and k != 'fold']
-    
-    # 3. 向量化比较（比 iterrows 快得多）
-    # 将 summary_df 中匹配的超参列转为字符串，并与当前 paras 比较
-    match_mask = pd.Series(True, index=summary_df.index)
-    for k in compare_keys:
-        # 统一转为字符串进行比较，避免 float(0.0001) vs str("1e-4") 的不一致
-        match_mask &= (summary_df[k].astype(str) == str(paras[k]))
-
-    # 4. 如果有任何一行匹配，说明该组参数已经跑完汇总了
+    # 如果有任何一行满足所有条件，说明已经完整跑过了
     if match_mask.any():
         return False
 

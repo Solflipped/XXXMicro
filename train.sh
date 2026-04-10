@@ -1,5 +1,6 @@
 # source /home/liang/miniconda3/etc/profile.d/conda.sh  # PT5
-source /root/miniconda/etc/profile.d/conda.sh  # lanyunGPU
+# source /root/miniconda/etc/profile.d/conda.sh  # lanyunGPU
+source /usr/local/miniconda3/etc/profile.d/conda.sh # ucloud
 conda activate hj_env
 
 
@@ -9,10 +10,10 @@ conda activate hj_env
 #   --batch_size 8 \
 #   --learning_rate 1e-3
 
-python main.py -d EW-T2D -f ko -m UFEN --gpu 0 \
-  --d_token 64 \
-  --batch_size 16 \
-  --learning_rate 1e-4
+# python main.py -d EW-T2D -f species -m UFEN --gpu 0 \
+#   --d_token 64 \
+#   --batch_size 16 \
+#   --learning_rate 1e-4
 
 # python main.py -d EW-T2D -f species,ko -m MBT --gpu 0 \
 #   --n_blocks 2 \
@@ -22,12 +23,12 @@ python main.py -d EW-T2D -f ko -m UFEN --gpu 0 \
 #   --learning_rate 1e-4 
 
 
-# python main.py -d EW-T2D -f ko,species -m MSFTTransformer --gpu 0 \
-#   --n_layers 1 \
-#   --batch_size 8 \
-#   --num_bottleneck 2 \
-#   --use_bottleneck --btn_init "embed" \
-#   --learning_rate 1e-4
+python main.py -d EW-T2D -f ko,species -m MSFT --gpu 0 \
+  --n_layers 2 \
+  --batch_size 32 \
+  --num_bottleneck 4 \
+  --use_bottleneck --use_cross_atn --btn_init "embed" \
+  --learning_rate 1e-4
 
 # python main.py -d EW-T2D -f ko,species -m MDL4Microbiome --gpu 0 \
 #   --batch_size 8 \
