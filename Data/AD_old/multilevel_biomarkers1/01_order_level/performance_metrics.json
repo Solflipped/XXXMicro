@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.6875,
+  "precision": 0.8,
+  "recall": 0.6881720430107527,
+  "sensitivity": 0.6881720430107527,
+  "specificity": 0.6862745098039216,
+  "f1_score": 0.7398843930635839,
+  "roc_auc": 0.7254901960784313,
+  "confusion_matrix": [
+    [
+      35,
+      16
+    ],
+    [
+      29,
+      64
+    ]
+  ],
+  "feature_count": 20,
+  "selected_features": [
+    "o__OFGB1217",
+    "o__Firmicutes_unclassified",
+    "o__Selenomonadales",
+    "o__Candidatus_Saccharibacteria_unclassified",
+    "o__Bacteroidales",
+    "o__Veillonellales",
+    "o__OFGB3038",
+    "o__OFGB9583",
+    "o__OFGB618",
+    "o__OFGB75721",
+    "o__Tissierellales",
+    "o__OFGB79291",
+    "o__Pasteurellales",
+    "o__OFGB3048",
+    "o__Clostridia_unclassified",
+    "o__Acidaminococcales",
+    "o__OFGB1765",
+    "o__OFGB1380",
+    "o__Eubacteriales",
+    "o__Verrucomicrobiales"
+  ]
+}

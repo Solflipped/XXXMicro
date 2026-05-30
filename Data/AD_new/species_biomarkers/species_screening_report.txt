@@ -1,0 +1,52 @@
+================================================================================
+Species 层级生物标志物筛选报告
+================================================================================
+处理时间: 2026-04-28 11:00:09
+预处理输入: /root/XXXMicro/Data/AD_new/species_preprocessed/species_processed.csv
+导出特征数量: 200
+评估特征数量: 20
+去冗余阈值: |r| < 0.85
+
+各方法筛选数量:
+- mann_whitney_total: 1785
+- mann_whitney_significant: 286
+- mann_whitney_candidates: 286
+- random_forest_total: 1785
+- random_forest_candidates: 500
+- elastic_net_total: 108
+- elastic_net_candidates: 108
+- mutual_info_total: 1785
+- mutual_info_candidates: 500
+- integration_candidates: 990
+- redundancy_skipped: 0
+- selected_top_k: 200
+- eval_top_k: 20
+
+Top 20 标志物:
+1. TM7_phylum_sp_oral_taxon_352
+2. Granulicatella_SGB8255
+3. Clostridiaceae_bacterium_Marseille_Q4149
+4. Agathobaculum_butyriciproducens
+5. Odoribacter_splanchnicus
+6. Dialister_hominis
+7. Lachnospira_pectinoschiza
+8. Alistipes_dispar
+9. Streptococcus_australis
+10. Blautia_caecimuris
+11. GGB9760_SGB15374
+12. Clostridium_sp_AT4
+13. Alistipes_putredinis
+14. Phocaeicola_plebeius
+15. Streptococcus_anginosus
+16. Negativibacillus_massiliensis
+17. Actinomyces_sp_ICM47
+18. Roseburia_faecis
+19. Alistipes_communis
+20. Streptococcus_mutans
+
+性能指标:
+- Accuracy: 0.7351
+- Precision: 0.8288
+- Recall: 0.7541
+- F1: 0.7897
+- ROC-AUC: 0.7963

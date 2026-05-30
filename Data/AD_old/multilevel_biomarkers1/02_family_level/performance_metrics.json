@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.7013888888888888,
+  "precision": 0.8048780487804879,
+  "recall": 0.7096774193548387,
+  "sensitivity": 0.7096774193548387,
+  "specificity": 0.6862745098039216,
+  "f1_score": 0.7542857142857143,
+  "roc_auc": 0.7889521399957834,
+  "confusion_matrix": [
+    [
+      35,
+      16
+    ],
+    [
+      27,
+      66
+    ]
+  ],
+  "feature_count": 20,
+  "selected_features": [
+    "f__Barnesiellaceae",
+    "f__Odoribacteraceae",
+    "f__Firmicutes_unclassified",
+    "f__FGB79291",
+    "f__Selenomonadaceae",
+    "f__FGB1217",
+    "f__Candidatus_Saccharibacteria_unclassified",
+    "f__Pasteurellaceae",
+    "f__Veillonellaceae",
+    "f__FGB9583",
+    "f__FGB618",
+    "f__Peptoniphilaceae",
+    "f__FGB3048",
+    "f__Acidaminococcaceae",
+    "f__FGB1380",
+    "f__Akkermansiaceae",
+    "f__FGB2837",
+    "f__FGB58251",
+    "f__FGB1425",
+    "f__FGB1473"
+  ]
+}

@@ -1,0 +1,22 @@
+================================================================================
+Species 层级预处理报告
+================================================================================
+处理时间: 2026-05-15 09:23:28
+原始文件: /root/XXXMicro/Data/EW-T2D-5-13/merged_species.csv
+原始形状: (96, 582)
+预处理后形状: (96, 582)
+
+参数:
+- min_nonzero_ratio: 0.5
+- outlier_method: iqr
+- normalization: CLR
+
+统计:
+- 原始特征数: 580
+- 清洗后特征数: 580
+- 异常值数量: 7974
+- 含异常值样本数: 96
+
+输出:
+- 原始保存: /root/XXXMicro/Data/EW-T2D-5-13/species_preprocessed/species_raw.csv
+- 预处理保存: /root/XXXMicro/Data/EW-T2D-5-13/species_preprocessed/species_processed.csv

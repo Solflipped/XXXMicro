@@ -1,0 +1,22 @@
+================================================================================
+Species 层级预处理报告
+================================================================================
+处理时间: 2026-04-28 10:59:55
+原始文件: /root/XXXMicro/Data/AD_new/merged_taxonomy.csv
+原始形状: (185, 1787)
+预处理后形状: (185, 1787)
+
+参数:
+- min_nonzero_ratio: 0.5
+- outlier_method: iqr
+- normalization: CLR
+
+统计:
+- 原始特征数: 1785
+- 清洗后特征数: 1785
+- 异常值数量: 19796
+- 含异常值样本数: 185
+
+输出:
+- 原始保存: /root/XXXMicro/Data/AD_new/species_preprocessed/species_raw.csv
+- 预处理保存: /root/XXXMicro/Data/AD_new/species_preprocessed/species_processed.csv

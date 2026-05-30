@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.7351351351351352,
+  "precision": 0.8230088495575221,
+  "recall": 0.7622950819672131,
+  "sensitivity": 0.7622950819672131,
+  "specificity": 0.6825396825396826,
+  "f1_score": 0.7914893617021276,
+  "roc_auc": 0.8140775435857402,
+  "confusion_matrix": [
+    [
+      43,
+      20
+    ],
+    [
+      29,
+      93
+    ]
+  ],
+  "feature_count": 20,
+  "selected_features": [
+    "s__TM7_phylum_sp_oral_taxon_352",
+    "s__GGB9760_SGB15374",
+    "s__Streptococcus_australis",
+    "s__Odoribacter_splanchnicus",
+    "s__Ruminococcus_callidus",
+    "s__Streptococcus_anginosus",
+    "s__Agathobaculum_butyriciproducens",
+    "s__Alistipes_communis",
+    "s__Roseburia_faecis",
+    "s__Clostridium_innocuum",
+    "s__Vescimonas_coprocola",
+    "s__Barnesiella_intestinihominis",
+    "s__Lachnospira_pectinoschiza",
+    "s__GGB2982_SGB3964",
+    "s__Megamonas_funiformis",
+    "s__Desulfovibrio_desulfuricans",
+    "s__Clostridium_sp_AT4",
+    "s__Negativibacillus_massiliensis",
+    "s__Clostridium_SGB6179",
+    "s__Granulicatella_SGB8255"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.7027027027027027,
+  "precision": 0.8316831683168316,
+  "recall": 0.6885245901639344,
+  "sensitivity": 0.6885245901639344,
+  "specificity": 0.7301587301587301,
+  "f1_score": 0.7533632286995516,
+  "roc_auc": 0.7624251886546969,
+  "confusion_matrix": [
+    [
+      46,
+      17
+    ],
+    [
+      38,
+      84
+    ]
+  ],
+  "feature_count": 20,
+  "selected_features": [
+    "g__Negativibacillus",
+    "g__Candidatus_Saccharibacteria_unclassified",
+    "g__Barnesiella",
+    "g__Granulicatella",
+    "g__Lachnospira",
+    "g__Butyricimonas",
+    "g__Eubacteriales_Family_XIII_Incertae_Sedis_unclassified",
+    "g__GGB9758",
+    "g__Odoribacter",
+    "g__GGB9559",
+    "g__Vescimonas",
+    "g__Gordonibacter",
+    "g__Haemophilus",
+    "g__Agathobaculum",
+    "g__Megamonas",
+    "g__GGB2982",
+    "g__Oscillibacter",
+    "g__Alistipes",
+    "g__Erysipelatoclostridium",
+    "g__Streptococcus"
+  ]
+}

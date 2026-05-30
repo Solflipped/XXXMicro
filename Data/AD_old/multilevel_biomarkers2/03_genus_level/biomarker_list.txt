@@ -1,0 +1,23 @@
+Genus 层级AD生物标志物列表
+==================================================
+
+1. Negativibacillus
+2. Candidatus_Saccharibacteria_unclassified
+3. Barnesiella
+4. Granulicatella
+5. Lachnospira
+6. Butyricimonas
+7. Eubacteriales_Family_XIII_Incertae_Sedis_unclassified
+8. GGB9758
+9. Odoribacter
+10. GGB9559
+11. Vescimonas
+12. Gordonibacter
+13. Haemophilus
+14. Agathobaculum
+15. Megamonas
+16. GGB2982
+17. Oscillibacter
+18. Alistipes
+19. Erysipelatoclostridium
+20. Streptococcus

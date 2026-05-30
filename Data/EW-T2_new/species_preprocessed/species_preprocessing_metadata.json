@@ -1,0 +1,20 @@
+{
+  "raw_shape": [
+    96,
+    544
+  ],
+  "processed_shape": [
+    96,
+    544
+  ],
+  "feature_count": 542,
+  "cleaned_feature_count": 542,
+  "min_nonzero_ratio": 0.5,
+  "outlier_method": "iqr",
+  "outlier_count": 7593,
+  "samples_with_outliers": 96,
+  "raw_file": "/root/XXXMicro/Data/EW-T2_new/species_preprocessed/species_raw.csv",
+  "processed_file": "/root/XXXMicro/Data/EW-T2_new/species_preprocessed/species_processed.csv",
+  "output_dir": "/root/XXXMicro/Data/EW-T2_new/species_preprocessed",
+  "level": "species"
+}

@@ -1,0 +1,49 @@
+1. 各层级筛选结果
+------------------------------------------------------------
+
+Order 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: Candidatus_Saccharibacteria_unclassified, OFGB38642, Pasteurellales, OFGB9583, OFGB1226
+
+Family 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: Odoribacteraceae, Barnesiellaceae, Candidatus_Saccharibacteria_unclassified, Pasteurellaceae, Carnobacteriaceae
+
+Genus 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: Negativibacillus, Candidatus_Saccharibacteria_unclassified, Barnesiella, Granulicatella, Butyricimonas
+
+Species 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: TM7_phylum_sp_oral_taxon_352, GGB9760_SGB15374, Streptococcus_australis, Odoribacter_splanchnicus, Ruminococcus_callidus
+
+2. 模型性能总结
+------------------------------------------------------------
+
+Order 层级:
+  - 准确率: 0.703
+  - 敏感性: 0.689
+  - 特异性: 0.730
+  - F1分数: 0.753
+  - ROC-AUC: 0.749
+
+Family 层级:
+  - 准确率: 0.730
+  - 敏感性: 0.738
+  - 特异性: 0.714
+  - F1分数: 0.783
+  - ROC-AUC: 0.779
+
+Genus 层级:
+  - 准确率: 0.746
+  - 敏感性: 0.754
+  - 特异性: 0.730
+  - F1分数: 0.797
+  - ROC-AUC: 0.814
+
+Species 层级:
+  - 准确率: 0.735
+  - 敏感性: 0.762
+  - 特异性: 0.683
+  - F1分数: 0.791
+  - ROC-AUC: 0.814

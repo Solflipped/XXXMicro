@@ -96,8 +96,11 @@ class Bridge(nn.Module):
     def forward(self, x):
         mu = self.fc_mu(x)
         logvar = self.fc_var(x)
-        logvar = torch.clamp(logvar, max=10.0) # 限制上限防爆炸,但保留微小且确信的生物标记物特征
-        z = self.reparameterize(mu, logvar)
+        logvar = torch.clamp(logvar, min=-10.0, max=10.0) 
+        if self.training:
+            z = self.reparameterize(mu, logvar)
+        else:
+            z = mu  # 推理时用确定性输出
         return z, mu, logvar
 
 
@@ -137,10 +140,10 @@ class UFEN(nn.Module):
     """
     def __init__(self, 
                  n_num_features: int,      # 原始特征维度
-                 d_token: int = 64,        # 输入通道数
-                 base_channels: int = 64,  # 基础通道数
-                 num_layers=3,             # 编码器/解码器层数
-                 latent_dim=256):          # 潜在表示维度
+                 d_token: int = 32,        # 输入通道数
+                 base_channels: int = 32,  # 基础通道数
+                 num_layers=2,             # 编码器/解码器层数
+                 latent_dim=128):          # 潜在表示维度
         super(UFEN, self).__init__()
 
         self.num_layers = num_layers
@@ -229,26 +232,35 @@ class UFEN(nn.Module):
     @classmethod
     def make_default(
         cls, # 类本身（UFEN）
-        n_num_features: int,     # 原始特征维度
-        d_token: int = 64,      # 输入通道数
+        n_num_features: int,      # 原始特征维度
+        d_token: int = 64,        # 输入通道数
+        base_channels: int = 64,  # 基础通道数
+        num_layers=2,             # 编码器/解码器层数
+        latent_dim=256,           # 潜在表示维度
         **kwargs
     ) -> 'UFEN':
         """
         参数:
         - n_num_features: 输入特征维度
         - d_token: token 输入通道数
+        - base_channels: 编码器/解码器的基础通道数，实际通道数会随着层数成倍增加
+        - num_layers: 编码器/解码器的层数
+        - latent_dim: 潜在空间的维度大小
         返回:
         - UFEN 模型实例
         """
         return cls(
             n_num_features=n_num_features,
             d_token=d_token,
+            base_channels=base_channels,
+            num_layers=num_layers,
+            latent_dim=latent_dim,
             **kwargs
         )
 
 
 class UFENNet(NeuralNetBinaryClassifier):
-    def __init__(self, *args, beta=0.01, **kwargs):
+    def __init__(self, *args, beta=0.001, **kwargs):
         super().__init__(*args, **kwargs)
         self.beta = beta
     
@@ -268,9 +280,9 @@ class UFENNet(NeuralNetBinaryClassifier):
         loss_kld = kld.mean()
 
         # 3. 训练初期更关注分类损失，逐渐增加 KLD 的权重
-        epoch = len(self.history) if hasattr(self, 'history') and self.history else 0
-        current_beta = min(1.0, (epoch + 1) / 50) * self.beta
-        total_loss = loss_bce + current_beta * loss_kld
+        # epoch = len(self.history) if hasattr(self, 'history') and self.history else 0
+        # current_beta = min(1.0, (epoch + 1) / 50) * self.beta
+        total_loss = loss_bce +  self.beta * loss_kld
     
         return loss_bce if torch.isnan(total_loss) else total_loss
 

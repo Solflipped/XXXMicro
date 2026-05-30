@@ -1,0 +1,20 @@
+{
+  "raw_shape": [
+    96,
+    1317
+  ],
+  "processed_shape": [
+    96,
+    1317
+  ],
+  "feature_count": 1315,
+  "cleaned_feature_count": 1315,
+  "all_zero_removed": 0,
+  "outlier_method": "iqr",
+  "outlier_count": 4322,
+  "samples_with_outliers": 89,
+  "raw_file": "/root/XXXMicro/Data/EW-T2_new/ko_preprocessed/ko_raw.csv",
+  "processed_file": "/root/XXXMicro/Data/EW-T2_new/ko_preprocessed/ko_processed.csv",
+  "output_dir": "/root/XXXMicro/Data/EW-T2_new/ko_preprocessed",
+  "normalization": "log"
+}

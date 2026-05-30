@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.8125,
+  "precision": 0.875,
+  "recall": 0.8279569892473119,
+  "sensitivity": 0.8279569892473119,
+  "specificity": 0.7843137254901961,
+  "f1_score": 0.8508287292817679,
+  "roc_auc": 0.882774615222433,
+  "confusion_matrix": [
+    [
+      40,
+      11
+    ],
+    [
+      16,
+      77
+    ]
+  ],
+  "feature_count": 20,
+  "selected_features": [
+    "g__Negativibacillus",
+    "g__Faecalicatena",
+    "g__Barnesiella",
+    "g__GGB2982",
+    "g__Vescimonas",
+    "g__GGB36331",
+    "g__Megamonas",
+    "g__Faecalibacterium",
+    "g__Allisonella",
+    "g__Butyricimonas",
+    "g__Candidatus_Saccharibacteria_unclassified",
+    "g__GGB9522",
+    "g__GGB9559",
+    "g__Christensenella",
+    "g__Lachnospira",
+    "g__GGB51441",
+    "g__Massiliimalia",
+    "g__Eisenbergiella",
+    "g__Lachnospiraceae_unclassified",
+    "g__Anaerotruncus"
+  ]
+}

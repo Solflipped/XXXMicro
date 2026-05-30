@@ -1,0 +1,5 @@
+seed,lr,batch_size,feature,d_token,n_query,num_bottleneck,n_enhance_layers,n_fusion_layers,n_attn_heads,dropout,mask_ratio,btn_init,lambda_recon,AUC,ACC,Recall,Precision,F1
+392,0.0001,16,"ko,species",32,8,4,1,2,4,0.1,0.01,embed,0.05,0.79772,0.6873600000000001,0.7745599999999999,0.70414,0.73098
+412,0.0001,16,"ko,species",32,8,4,1,2,4,0.1,0.01,embed,0.05,0.7732000000000001,0.73,0.71456,0.78126,0.74296
+432,0.0001,16,"ko,species",32,8,4,1,2,4,0.1,0.01,embed,0.05,0.7805,0.74052,0.71638,0.7942,0.7494000000000001
+all,0.0001,16,"ko,species",32,8,4,1,2,4,0.1,0.01,embed,0.05,0.7838 ± 0.0103,0.7193 ± 0.0230,0.7352 ± 0.0279,0.7599 ± 0.0398,0.7411 ± 0.0076

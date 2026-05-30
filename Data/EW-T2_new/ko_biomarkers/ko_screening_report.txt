@@ -1,0 +1,52 @@
+================================================================================
+KO 层级生物标志物筛选报告
+================================================================================
+处理时间: 2026-05-13 09:48:09
+预处理输入: /root/XXXMicro/Data/EW-T2_new/ko_preprocessed/ko_processed.csv
+导出特征数量: 800
+评估特征数量: 20
+去冗余阈值: |r| < 0.95
+
+各方法筛选数量:
+- mann_whitney_total: 1315
+- mann_whitney_significant: 568
+- mann_whitney_candidates: 568
+- random_forest_total: 1315
+- random_forest_candidates: 1000
+- elastic_net_total: 284
+- elastic_net_candidates: 284
+- mutual_info_total: 1315
+- mutual_info_candidates: 1000
+- integration_candidates: 1262
+- redundancy_skipped: 71
+- selected_top_k: 800
+- eval_top_k: 20
+
+Top 20 标志物:
+1. K07027
+2. K05795
+3. K07484
+4. K05366
+5. K22522
+6. K02346
+7. K00852
+8. K07452
+9. K01955
+10. K01658
+11. K00609
+12. K01703
+13. K01465
+14. K15255
+15. K12410
+16. K02283
+17. K26364
+18. K23396
+19. K00088
+20. K00243
+
+性能指标:
+- Accuracy: 0.7708
+- Precision: 0.7925
+- Recall: 0.7925
+- F1: 0.7925
+- ROC-AUC: 0.8420

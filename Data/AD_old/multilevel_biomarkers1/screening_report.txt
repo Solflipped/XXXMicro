@@ -1,0 +1,49 @@
+1. 各层级筛选结果
+------------------------------------------------------------
+
+Order 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: OFGB1217, Firmicutes_unclassified, Selenomonadales, Candidatus_Saccharibacteria_unclassified, Bacteroidales
+
+Family 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: Barnesiellaceae, Odoribacteraceae, Firmicutes_unclassified, FGB79291, Selenomonadaceae
+
+Genus 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: Negativibacillus, Faecalicatena, Barnesiella, GGB2982, Vescimonas
+
+Species 层级:
+  - 筛选出 20 个生物标志物
+  - Top5标志物: Negativibacillus_massiliensis, TM7_phylum_sp_oral_taxon_352, Clostridiaceae_bacterium_Marseille_Q4149, Ruminococcus_callidus, Actinomyces_naeslundii
+
+2. 模型性能总结
+------------------------------------------------------------
+
+Order 层级:
+  - 准确率: 0.688
+  - 敏感性: 0.688
+  - 特异性: 0.686
+  - F1分数: 0.740
+  - ROC-AUC: 0.725
+
+Family 层级:
+  - 准确率: 0.701
+  - 敏感性: 0.710
+  - 特异性: 0.686
+  - F1分数: 0.754
+  - ROC-AUC: 0.789
+
+Genus 层级:
+  - 准确率: 0.812
+  - 敏感性: 0.828
+  - 特异性: 0.784
+  - F1分数: 0.851
+  - ROC-AUC: 0.883
+
+Species 层级:
+  - 准确率: 0.764
+  - 敏感性: 0.763
+  - 特异性: 0.765
+  - F1分数: 0.807
+  - ROC-AUC: 0.816

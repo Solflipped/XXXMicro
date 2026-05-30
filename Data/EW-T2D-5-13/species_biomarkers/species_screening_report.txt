@@ -1,0 +1,52 @@
+================================================================================
+Species 层级生物标志物筛选报告
+================================================================================
+处理时间: 2026-05-15 09:23:33
+预处理输入: /root/XXXMicro/Data/EW-T2D-5-13/species_preprocessed/species_processed.csv
+导出特征数量: 200
+评估特征数量: 20
+去冗余阈值: |r| < 0.85
+
+各方法筛选数量:
+- mann_whitney_total: 580
+- mann_whitney_significant: 91
+- mann_whitney_candidates: 91
+- random_forest_total: 580
+- random_forest_candidates: 500
+- elastic_net_total: 64
+- elastic_net_candidates: 64
+- mutual_info_total: 580
+- mutual_info_candidates: 500
+- integration_candidates: 567
+- redundancy_skipped: 0
+- selected_top_k: 200
+- eval_top_k: 20
+
+Top 20 标志物:
+1. GGB9524_SGB14924
+2. Holdemania_sp_1001095H_141210_F2
+3. Bacteroides_ovatus
+4. Blautia_wexlerae
+5. Bacteroides_finegoldii
+6. Bifidobacterium_dentium
+7. Streptococcus_mutans
+8. Enterocloster_citroniae
+9. Prevotella_copri_clade_A
+10. Anaerotruncus_massiliensis
+11. Holdemanella_biformis
+12. GGB3433_SGB4573
+13. Enterocloster_bolteae
+14. GGB51269_SGB5062
+15. Lacrimispora_saccharolytica
+16. Phascolarctobacterium_faecium
+17. Clostridium_SGB6179
+18. Clostridiales_bacterium
+19. Flavonifractor_plautii
+20. Blautia_hydrogenotrophica
+
+性能指标:
+- Accuracy: 0.8021
+- Precision: 0.8269
+- Recall: 0.8113
+- F1: 0.8190
+- ROC-AUC: 0.8798

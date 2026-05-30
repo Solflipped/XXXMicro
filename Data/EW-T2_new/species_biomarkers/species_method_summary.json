@@ -1,0 +1,15 @@
+{
+  "mann_whitney_total": 542,
+  "mann_whitney_significant": 50,
+  "mann_whitney_candidates": 50,
+  "random_forest_total": 542,
+  "random_forest_candidates": 500,
+  "elastic_net_total": 60,
+  "elastic_net_candidates": 60,
+  "mutual_info_total": 542,
+  "mutual_info_candidates": 500,
+  "integration_candidates": 538,
+  "redundancy_skipped": 0,
+  "selected_top_k": 200,
+  "eval_top_k": 20
+}

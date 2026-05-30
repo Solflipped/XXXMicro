@@ -1,0 +1,52 @@
+================================================================================
+AMP 层级生物标志物筛选报告
+================================================================================
+处理时间: 2026-05-15 09:27:03
+预处理输入: /root/XXXMicro/Data/EW-T2D-5-13/amp_preprocessed/amp_processed.csv
+导出特征数量: 200
+评估特征数量: 20
+去冗余阈值: |r| < 0.95
+
+各方法筛选数量:
+- mann_whitney_total: 2719
+- mann_whitney_significant: 192
+- mann_whitney_candidates: 192
+- random_forest_total: 2719
+- random_forest_candidates: 500
+- elastic_net_total: 258
+- elastic_net_candidates: 258
+- mutual_info_total: 2719
+- mutual_info_candidates: 500
+- integration_candidates: 993
+- redundancy_skipped: 0
+- selected_top_k: 200
+- eval_top_k: 20
+
+Top 20 标志物:
+1. Cluster_2523
+2. Cluster_4159
+3. Cluster_1191
+4. Cluster_3705
+5. Cluster_2809
+6. Cluster_3387
+7. Cluster_4122
+8. Cluster_889
+9. Cluster_879
+10. Cluster_651
+11. Cluster_1579
+12. Cluster_4389
+13. Cluster_388
+14. Cluster_324
+15. Cluster_4361
+16. Cluster_517
+17. Cluster_2441
+18. Cluster_40
+19. Cluster_3152
+20. Cluster_2299
+
+性能指标:
+- Accuracy: 0.8021
+- Precision: 0.8400
+- Recall: 0.7925
+- F1: 0.8155
+- ROC-AUC: 0.8899

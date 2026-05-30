@@ -1,0 +1,61 @@
+================================================================================
+微生物组数据多层级预处理报告
+================================================================================
+处理日期: 2026-04-28 05:41:40
+原始数据文件: /root/XXXMicro/Data/AD/merged_taxonomy.tsv
+原始数据形状: (144, 1658)
+
+1. 各层级数据概况
+------------------------------------------------------------
+
+Order 层级 (目层级):
+  - 原始特征数: 253
+  - 清洗后特征数: 253
+  - 最终数据形状: (144, 255)
+  - 异常值数量: 2388
+  - 输出目录: /root/XXXMicro/Data/AD/multilevel_preprocessed1/01_order_level
+  - 预处理数据文件: /root/XXXMicro/Data/AD/multilevel_preprocessed1/01_order_level/order_processed.csv
+
+Family 层级 (科层级):
+  - 原始特征数: 300
+  - 清洗后特征数: 300
+  - 最终数据形状: (144, 302)
+  - 异常值数量: 2895
+  - 输出目录: /root/XXXMicro/Data/AD/multilevel_preprocessed1/02_family_level
+  - 预处理数据文件: /root/XXXMicro/Data/AD/multilevel_preprocessed1/02_family_level/family_processed.csv
+
+Genus 层级 (属层级):
+  - 原始特征数: 896
+  - 清洗后特征数: 896
+  - 最终数据形状: (144, 898)
+  - 异常值数量: 8040
+  - 输出目录: /root/XXXMicro/Data/AD/multilevel_preprocessed1/03_genus_level
+  - 预处理数据文件: /root/XXXMicro/Data/AD/multilevel_preprocessed1/03_genus_level/genus_processed.csv
+
+Species 层级 (种层级):
+  - 原始特征数: 1656
+  - 清洗后特征数: 1656
+  - 最终数据形状: (144, 1658)
+  - 异常值数量: 15147
+  - 输出目录: /root/XXXMicro/Data/AD/multilevel_preprocessed1/04_species_level
+  - 预处理数据文件: /root/XXXMicro/Data/AD/multilevel_preprocessed1/04_species_level/species_processed.csv
+
+3. 输出文件清单
+------------------------------------------------------------
+根目录: /root/XXXMicro/Data/AD/multilevel_preprocessed1
+
+Order 层级文件:
+  - 原始数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/01_order_level/order_raw.csv
+  - 预处理数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/01_order_level/order_processed.csv
+
+Family 层级文件:
+  - 原始数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/02_family_level/family_raw.csv
+  - 预处理数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/02_family_level/family_processed.csv
+
+Genus 层级文件:
+  - 原始数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/03_genus_level/genus_raw.csv
+  - 预处理数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/03_genus_level/genus_processed.csv
+
+Species 层级文件:
+  - 原始数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/04_species_level/species_raw.csv
+  - 预处理数据: /root/XXXMicro/Data/AD/multilevel_preprocessed1/04_species_level/species_processed.csv

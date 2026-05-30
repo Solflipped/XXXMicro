@@ -1,0 +1,94 @@
+{
+  "order": {
+    "config": {
+      "prefix": "o__",
+      "name": "Order",
+      "folder": "01_order_level",
+      "description": "目层级"
+    },
+    "raw_shape": [
+      185,
+      68
+    ],
+    "processed_shape": [
+      185,
+      68
+    ],
+    "feature_count": 66,
+    "cleaned_feature_count": 66,
+    "outlier_count": 1881,
+    "samples_with_outliers": 184,
+    "raw_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/01_order_level/order_raw.csv",
+    "processed_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/01_order_level/order_processed.csv",
+    "output_dir": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/01_order_level"
+  },
+  "family": {
+    "config": {
+      "prefix": "f__",
+      "name": "Family",
+      "folder": "02_family_level",
+      "description": "科层级"
+    },
+    "raw_shape": [
+      185,
+      88
+    ],
+    "processed_shape": [
+      185,
+      88
+    ],
+    "feature_count": 86,
+    "cleaned_feature_count": 86,
+    "outlier_count": 2317,
+    "samples_with_outliers": 185,
+    "raw_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/02_family_level/family_raw.csv",
+    "processed_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/02_family_level/family_processed.csv",
+    "output_dir": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/02_family_level"
+  },
+  "genus": {
+    "config": {
+      "prefix": "g__",
+      "name": "Genus",
+      "folder": "03_genus_level",
+      "description": "属层级"
+    },
+    "raw_shape": [
+      185,
+      238
+    ],
+    "processed_shape": [
+      185,
+      238
+    ],
+    "feature_count": 236,
+    "cleaned_feature_count": 236,
+    "outlier_count": 6546,
+    "samples_with_outliers": 185,
+    "raw_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/03_genus_level/genus_raw.csv",
+    "processed_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/03_genus_level/genus_processed.csv",
+    "output_dir": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/03_genus_level"
+  },
+  "species": {
+    "config": {
+      "prefix": "s__",
+      "name": "Species",
+      "folder": "04_species_level",
+      "description": "种层级"
+    },
+    "raw_shape": [
+      185,
+      451
+    ],
+    "processed_shape": [
+      185,
+      451
+    ],
+    "feature_count": 449,
+    "cleaned_feature_count": 449,
+    "outlier_count": 13077,
+    "samples_with_outliers": 185,
+    "raw_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/04_species_level/species_raw.csv",
+    "processed_file": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/04_species_level/species_processed.csv",
+    "output_dir": "/root/XXXMicro/Data/AD/multilevel_preprocessed2/04_species_level"
+  }
+}

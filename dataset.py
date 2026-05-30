@@ -2,9 +2,13 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 from typing import List
-from sklearn.preprocessing import StandardScaler,MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from skorch.helper import SliceDict
 from utils import check_sample_order
+
+def standardize_features(x: np.ndarray) -> np.ndarray:
+    x = StandardScaler().fit_transform(x)
+    return x.astype(np.float32)
 
 
 class dataset(Dataset):
@@ -18,34 +22,41 @@ class dataset(Dataset):
         self.feature_names = list(df.columns[2:])
 
         if normalize:
-            # scaler = MinMaxScaler()
-            # self.features = scaler.fit_transform(self.features)
-            self.features = np.log1p(self.features)
-            scaler = StandardScaler()
-            self.features = scaler.fit_transform(self.features)
+            self.features = standardize_features(self.features)
 
     def get_data(self):
         return self.features, self.labels, self.feature_names
 
 
-def load_uni_features(disease: str, features: List[str]):
+def load_uni_features(
+    disease: str,
+    features: List[str],
+    normalize: bool = True,
+):
     path = f"./Data/{disease}/{features[0]}_abundance.csv"
-    d = dataset(path)
+    d = dataset(path, normalize=normalize)
     x, y, feature_names = d.get_data()
 
     x = SliceDict(f1_input=x)
-    print(f"Loaded all samples from {path}: {x['f1_input'].shape[0]} samples, {x['f1_input'].shape[1]} features")
+    print(
+        f"Loaded all samples from {path}: {x['f1_input'].shape[0]} "
+        f"samples, {x['f1_input'].shape[1]} features"
+    )
     return x, y, feature_names
 
 
-def load_multi_features(disease: str, features: List[str]):
+def load_multi_features(
+    disease: str,
+    features: List[str],
+    normalize: bool = True,
+):
     f1_path = f"./Data/{disease}/{features[0]}_abundance.csv"
     f2_path = f"./Data/{disease}/{features[1]}_abundance.csv"
 
     check_sample_order([f1_path, f2_path])
 
-    d1 = dataset(f1_path)
-    d2 = dataset(f2_path)
+    d1 = dataset(f1_path, normalize=normalize)
+    d2 = dataset(f2_path, normalize=normalize)
 
     x1, y1, n1 = d1.get_data()
     x2, y2, n2 = d2.get_data()

@@ -1,0 +1,21 @@
+{
+  "raw_shape": [
+    96,
+    2721
+  ],
+  "processed_shape": [
+    96,
+    2721
+  ],
+  "feature_count": 2719,
+  "all_zero_removed": 0,
+  "prevalence_passed_feature_count": 2719,
+  "cleaned_feature_count": 2719,
+  "outlier_method": "iqr",
+  "outlier_count": 24123,
+  "samples_with_outliers": 96,
+  "raw_file": "/root/XXXMicro/Data/EW-T2D-5-13/amp_preprocessed/amp_raw.csv",
+  "processed_file": "/root/XXXMicro/Data/EW-T2D-5-13/amp_preprocessed/amp_processed.csv",
+  "output_dir": "/root/XXXMicro/Data/EW-T2D-5-13/amp_preprocessed",
+  "normalization": "legacy_log_impute"
+}
